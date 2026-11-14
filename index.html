@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lunar Co-Visibility Explorer</title>
+    <style>
+      :root { color-scheme: dark; font-family: system-ui, sans-serif; color: #edf0f6; background: #050810; }
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      main { min-height: 100svh; display: flex; flex-direction: column; }
+      header, footer { padding: 20px clamp(16px, 4vw, 48px); background: #111721; }
+      h1 { margin: 0 0 8px; font-size: clamp(20px, 3vw, 30px); }
+      p { margin: 6px 0; color: #c2ccdb; line-height: 1.5; max-width: 75ch; }
+      #viewport { height: 62svh; min-height: 320px; flex: 1; }
+      label { display: block; margin-bottom: 12px; }
+      input { width: 100%; accent-color: #ffd066; cursor: pointer; }
+      input:focus-visible { outline: 2px solid #ffd066; outline-offset: 6px; }
+      input:disabled { cursor: wait; opacity: 0.5; }
+      output { font-variant-numeric: tabular-nums; }
+      #error { color: #ffb9ac; }
+      ::selection { background: #ffd066; color: #050810; }
+      .sun { color: #ffd066; } .earth { color: #63baff; } .horizon { color: #b9b3ff; }
+      .controls { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px; }
+      .controls label { min-width: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+      .controls { align-items: center; }
+      .controls .guides { flex-direction: row; align-items: center; max-width: 30ch; }
+      #guides, #effects { width: 20px; height: 20px; flex-shrink: 0; }
+      .controls select, .controls input { max-width: 100%; }
+      small { color: #c2ccdb; }
+      #viewport { background: #000; touch-action: none; }
+      @media(max-width: 600px) { header, footer { padding: 16px; } .controls { gap: 12px; } .controls label { flex: 1 1 180px; } }
+
+      select, button { font: inherit; color: #edf0f6; background: #202c3c; border: 1px solid #69788d; border-radius: 6px; padding: 8px 12px; min-height: 44px; }
+      select:focus-visible, button:focus-visible { outline: 2px solid #ffd066; outline-offset: 3px; }
+      button { cursor: pointer; } button:hover { background: #33445b; }
+      select:disabled { opacity: 0.55; }
+      button:disabled { cursor: not-allowed; opacity: .55; }
+      #live[aria-pressed="true"] { border-color: #65ed91; color: #65ed91; }
+      details { margin-top: 16px; } summary { cursor: pointer; padding: 8px 0; }
+      fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+      #coordinate-fields { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+      #coordinate-fields label { flex: 1 1 160px; margin: 0; }
+      #coordinate-fields input { display: block; margin-top: 6px; padding: 10px; min-height: 44px; color: #edf0f6; background: #202c3c; border: 1px solid #69788d; border-radius: 6px; font: inherit; cursor: text; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Lunar Co-Visibility Explorer</h1>
+        <p id="data-source">Terreno LOLA y efemérides JPL Horizons del conjunto entregado por el equipo. Visualización geométrica; no certificada para planificación de vuelo.</p>
+        <p>Arrastra para mirar en 360°. En vista orbital, usa la rueda para acercarte. El modo cinematogr&#225;fico recorre el paisaje autom&#225;ticamente. <span class="sun">Sol amarillo</span> · <span class="earth">Tierra azul</span> · <span class="horizon">Horizonte violeta</span>.</p>
+        <div class="controls">
+          <label>Sitio <select id="site" disabled aria-label="Sitio lunar"><option>Cargando…</option></select></label>
+          <label>Altura del observador <select id="height" disabled><option value="2">2 m</option><option value="5">5 m (aproximación)</option></select></label>
+          <label>Vista <select id="view"><option value="surface">Superficie · Lander POV</option><option value="lander">Lander &#183; Inspecci&#243;n</option><option value="globe">Luna completa</option><option value="top">Cenital &#183; Mapa topogr&#225;fico</option><option value="cinematic">Cinematogr&#225;fica &#183; Vuelo espacial</option><option value="orbital">Orbital · Táctica</option></select></label>
+          <button id="cinematic-pause" type="button" hidden aria-pressed="false">Pausar vuelo</button>
+          <label for="exaggeration">Exageración del terreno · <output id="exaggeration-value">4×</output><input id="exaggeration" type="range" min="1" max="15" step="0.5" value="4" /><small>1× real — 15× exagerado</small></label>
+          <label class="guides"><input id="effects" type="checkbox" checked /> Bloom y efectos de misi&#243;n</label>
+          <label class="guides"><input id="guides" type="checkbox" /> Mostrar guías técnicas (Horizonte y Vectores)</label>
+        </div>
+        <p>Luna completa con textura de baja resoluci&#243;n. Detalle LOLA en el sitio y transici&#243;n procedural hasta 120 km. La c&#225;mara est&#225; centrada en el parche; las gu&#237;as y el enlace corresponden al punto original del backend. La exageración es visual; el horizonte y las condiciones del backend conservan su escala científica.</p>
+        <p><output id="dte" aria-live="polite">DTE: pendiente</output> &middot; <output id="performance" aria-label="Rendimiento">Midiendo FPS...</output></p>
+        <p id="map-legend" hidden>Mapa de elevaci&#243;n: azul oscuro = cotas bajas, arena = cotas altas. Curvas cada 100 m. Arrastra para desplazar; rueda para zoom. Norte de cuadr&#237;cula arriba.</p>
+        <p id="beam-status">Pulsos RF e incidencia solar ilustrativos.</p>
+        <p id="detail">Consultando sitios disponibles…</p>
+        <details id="custom-site">
+          <summary>Explorar por coordenadas lunares</summary>
+          <p id="coordinate-help">Introduce un punto: el backend genera su terreno y horizonte si tiene cobertura LOLA. Puede tardar hasta 4 minutos. Se solicitan 48 horas alrededor de la fecha seleccionada (o de ahora en modo en vivo). El registro es temporal.</p>
+          <form id="coordinate-form" aria-describedby="coordinate-help">
+            <fieldset id="coordinate-fields">
+              <label>Nombre del sitio<input id="coordinate-name" required maxlength="120" placeholder="Mi punto lunar" /></label>
+              <label>Latitud (°)<input id="coordinate-lat" type="number" required min="-90" max="90" step="any" placeholder="−89.5" /></label>
+              <label>Longitud este (°)<input id="coordinate-lon" type="number" required min="-180" max="360" step="any" placeholder="−137.5 o 222.5" /></label>
+              <button type="submit">Generar y explorar</button>
+            </fieldset>
+          </form>
+        </details>
+        <p id="load-progress" role="status" hidden></p>
+        <button id="cancel-load" type="button" hidden>Cancelar espera</button>
+      </header>
+      <div id="viewport" aria-label="Vista tridimensional del terreno lunar"></div>
+      <footer>
+        <button id="live" type="button" aria-pressed="false" aria-describedby="live-status" disabled>En vivo</button>
+        <p id="live-status">Consultando cobertura temporal…</p>
+        <label for="time">Hora UTC: <output id="timestamp">Cargando datos…</output></label>
+        <input id="time" type="range" min="0" max="24" step="1" value="0" disabled />
+        <p id="status" role="status">Preparando terreno…</p>
+        <p id="error" role="alert" hidden></p>
+        <button id="retry" type="button" hidden>Reintentar conexión</button>
+      </footer>
+    </main>
+    <script type="module" src="/demo/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,852 @@
+{
+  "checkedAt": "2026-11-14T19:48:27.535Z",
+  "base": "https://backend.lightlink.club",
+  "comparison": "Current remote responses versus bundled local backend (not a previous remote deployment snapshot)",
+  "discovery": [
+    {
+      "path": "/health",
+      "status": 200,
+      "cors": null,
+      "data": {
+        "status": "ok"
+      }
+    },
+    {
+      "path": "/openapi.json",
+      "status": 404,
+      "cors": null,
+      "data": {
+        "message": "Route GET:/openapi.json not found",
+        "error": "Not Found",
+        "statusCode": 404
+      }
+    },
+    {
+      "path": "/documentation/json",
+      "status": 404,
+      "cors": null,
+      "data": {
+        "message": "Route GET:/documentation/json not found",
+        "error": "Not Found",
+        "statusCode": 404
+      }
+    },
+    {
+      "path": "/docs",
+      "status": 404,
+      "cors": null,
+      "data": {
+        "message": "Route GET:/docs not found",
+        "error": "Not Found",
+        "statusCode": 404
+      }
+    }
+  ],
+  "catalog": {
+    "path": "/sites",
+    "status": 200,
+    "cors": null,
+    "data": [
+      {
+        "site_id": "Site01",
+        "coordinates": {
+          "latitude": -89.46780662860169,
+          "longitude": 222.45101560262333
+        },
+        "observer_heights_m": [
+          2,
+          5
+        ],
+        "coverage": {
+          "start_utc": "2026-11-01T00:00:00Z",
+          "end_utc": "2026-12-31T23:00:00Z"
+        }
+      },
+      {
+        "site_id": "Site04",
+        "coordinates": {
+          "latitude": -89.762838975107,
+          "longitude": 187.65124022411365
+        },
+        "observer_heights_m": [
+          2,
+          5
+        ],
+        "coverage": {
+          "start_utc": "2026-11-01T00:00:00Z",
+          "end_utc": "2026-12-31T23:00:00Z"
+        }
+      },
+      {
+        "site_id": "Site06",
+        "coordinates": {
+          "latitude": -85.43014654088104,
+          "longitude": 37.36972985586903
+        },
+        "observer_heights_m": [
+          2,
+          5
+        ],
+        "coverage": {
+          "start_utc": "2026-11-01T00:00:00Z",
+          "end_utc": "2026-12-31T23:00:00Z"
+        }
+      },
+      {
+        "site_id": "Site07",
+        "coordinates": {
+          "latitude": -88.80787535737895,
+          "longitude": 123.73732221958406
+        },
+        "observer_heights_m": [
+          2,
+          5
+        ],
+        "coverage": {
+          "start_utc": "2026-11-01T00:00:00Z",
+          "end_utc": "2026-12-31T23:00:00Z"
+        }
+      },
+      {
+        "site_id": "Site11",
+        "coordinates": {
+          "latitude": -88.67841326023316,
+          "longitude": 292.0609169011664
+        },
+        "observer_heights_m": [
+          2,
+          5
+        ],
+        "coverage": {
+          "start_utc": "2026-11-01T00:00:00Z",
+          "end_utc": "2026-12-31T23:00:00Z"
+        }
+      },
+      {
+        "site_id": "Site20v2",
+        "coordinates": {
+          "latitude": -85.42635306801252,
+          "longitude": 31.839392679766394
+        },
+        "observer_heights_m": [
+          2,
+          5
+        ],
+        "coverage": {
+          "start_utc": "2026-11-01T00:00:00Z",
+          "end_utc": "2026-12-31T23:00:00Z"
+        }
+      },
+      {
+        "site_id": "Site23",
+        "coordinates": {
+          "latitude": -85.9973126027392,
+          "longitude": 359.6897477252503
+        },
+        "observer_heights_m": [
+          2,
+          5
+        ],
+        "coverage": {
+          "start_utc": "2026-11-01T00:00:00Z",
+          "end_utc": "2026-12-31T23:00:00Z"
+        }
+      }
+    ]
+  },
+  "sites": [
+    {
+      "id": "Site01",
+      "height": 2,
+      "status": 200,
+      "compatibility": "ok",
+      "keys": [
+        "site_id",
+        "heightmap_url",
+        "horizon_mask",
+        "ephemeris_timeline",
+        "windows",
+        "metrics",
+        "resolution",
+        "provenance",
+        "coordinates",
+        "target",
+        "heightmap",
+        "observer_height_m"
+      ],
+      "addedKeys": [],
+      "removedKeys": [],
+      "changedKeys": [],
+      "frames": 1464,
+      "horizon": 3600,
+      "metrics": {
+        "sun_visible_sample_fraction": 0.7718579234972678,
+        "earth_visible_sample_fraction": 0.3797814207650273,
+        "co_visibility_sample_fraction": 0.24795081967213115
+      },
+      "resolution": {
+        "horizon_step_deg": 0.1,
+        "source_step_hours": 1,
+        "response_step_hours": 1,
+        "start_utc": "2026-11-01T00:00:00Z",
+        "end_utc": "2026-12-31T23:00:00Z",
+        "window_method": "sample_hold_until_next_hour; clipped at range end; no crossing refinement",
+        "visibility_rule": "body center elevation > circular linear horizon; equality is false",
+        "height_method": "native ephemeris observer height"
+      },
+      "png": {
+        "status": 200,
+        "width": 1024,
+        "height": 1024,
+        "bytes": 1275639,
+        "sha256": "d649154fed3668b0d7b27dab4fd615abf00d366bf5e2a7e3df7c7f2902888434",
+        "sameAsLocal": true
+      }
+    },
+    {
+      "id": "Site01",
+      "height": 5,
+      "status": 200,
+      "compatibility": "ok",
+      "keys": [
+        "site_id",
+        "heightmap_url",
+        "horizon_mask",
+        "ephemeris_timeline",
+        "windows",
+        "metrics",
+        "resolution",
+        "provenance",
+        "coordinates",
+        "target",
+        "heightmap",
+        "observer_height_m"
+      ],
+      "addedKeys": [],
+      "removedKeys": [],
+      "changedKeys": [],
+      "frames": 1464,
+      "horizon": 3600,
+      "metrics": {
+        "sun_visible_sample_fraction": 1,
+        "earth_visible_sample_fraction": 0.430327868852459,
+        "co_visibility_sample_fraction": 0.430327868852459
+      },
+      "resolution": {
+        "horizon_step_deg": 0.1,
+        "source_step_hours": 1,
+        "response_step_hours": 1,
+        "start_utc": "2026-11-01T00:00:00Z",
+        "end_utc": "2026-12-31T23:00:00Z",
+        "window_method": "sample_hold_until_next_hour; clipped at range end; no crossing refinement",
+        "visibility_rule": "body center elevation > circular linear horizon; equality is false",
+        "height_method": "precomputed horizon; ephemeris angles reused from 2 m (approximation)"
+      }
+    },
+    {
+      "id": "Site04",
+      "height": 2,
+      "status": 200,
+      "compatibility": "ok",
+      "keys": [
+        "site_id",
+        "heightmap_url",
+        "horizon_mask",
+        "ephemeris_timeline",
+        "windows",
+        "metrics",
+        "resolution",
+        "provenance",
+        "coordinates",
+        "target",
+        "heightmap",
+        "observer_height_m"
+      ],
+      "addedKeys": [],
+      "removedKeys": [],
+      "changedKeys": [],
+      "frames": 1464,
+      "horizon": 3600,
+      "metrics": {
+        "sun_visible_sample_fraction": 0.27527322404371585,
+        "earth_visible_sample_fraction": 0,
+        "co_visibility_sample_fraction": 0
+      },
+      "resolution": {
+        "horizon_step_deg": 0.1,
+        "source_step_hours": 1,
+        "response_step_hours": 1,
+        "start_utc": "2026-11-01T00:00:00Z",
+        "end_utc": "2026-12-31T23:00:00Z",
+        "window_method": "sample_hold_until_next_hour; clipped at range end; no crossing refinement",
+        "visibility_rule": "body center elevation > circular linear horizon; equality is false",
+        "height_method": "native ephemeris observer height"
+      },
+      "png": {
+        "status": 200,
+        "width": 1024,
+        "height": 1024,
+        "bytes": 1165998,
+        "sha256": "e107e5c0196a3ba5211524d91cbdef73e939cbca11b876df580b07af88d76f8b",
+        "sameAsLocal": true
+      }
+    },
+    {
+      "id": "Site04",
+      "height": 5,
+      "status": 200,
+      "compatibility": "ok",
+      "keys": [
+        "site_id",
+        "heightmap_url",
+        "horizon_mask",
+        "ephemeris_timeline",
+        "windows",
+        "metrics",
+        "resolution",
+        "provenance",
+        "coordinates",
+        "target",
+        "heightmap",
+        "observer_height_m"
+      ],
+      "addedKeys": [],
+      "removedKeys": [],
+      "changedKeys": [],
+      "frames": 1464,
+      "horizon": 3600,
+      "metrics": {
+        "sun_visible_sample_fraction": 0.27595628415300544,
+        "earth_visible_sample_fraction": 0,
+        "co_visibility_sample_fraction": 0
+      },
+      "resolution": {
+        "horizon_step_deg": 0.1,
+        "source_step_hours": 1,
+        "response_step_hours": 1,
+        "start_utc": "2026-11-01T00:00:00Z",
+        "end_utc": "2026-12-31T23:00:00Z",
+        "window_method": "sample_hold_until_next_hour; clipped at range end; no crossing refinement",
+        "visibility_rule": "body center elevation > circular linear horizon; equality is false",
+        "height_method": "precomputed horizon; ephemeris angles reused from 2 m (approximation)"
+      }
+    },
+    {
+      "id": "Site06",
+      "height": 2,
+      "status": 200,
+      "compatibility": "ok",
+      "keys": [
+        "site_id",
+        "heightmap_url",
+        "horizon_mask",
+        "ephemeris_timeline",
+        "windows",
+        "metrics",
+        "resolution",
+        "provenance",
+        "coordinates",
+        "target",
+        "heightmap",
+        "observer_height_m"
+      ],
+      "addedKeys": [],
+      "removedKeys": [],
+      "changedKeys": [],
+      "frames": 1464,
+      "horizon": 3600,
+      "metrics": {
+        "sun_visible_sample_fraction": 0.26366120218579236,
+        "earth_visible_sample_fraction": 0,
+        "co_visibility_sample_fraction": 0
+      },
+      "resolution": {
+        "horizon_step_deg": 0.1,
+        "source_step_hours": 1,
+        "response_step_hours": 1,
+        "start_utc": "2026-11-01T00:00:00Z",
+        "end_utc": "2026-12-31T23:00:00Z",
+        "window_method": "sample_hold_until_next_hour; clipped at range end; no crossing refinement",
+        "visibility_rule": "body center elevation > circular linear horizon; equality is false",
+        "height_method": "native ephemeris observer height"
+      },
+      "png": {
+        "status": 200,
+        "width": 1024,
+        "height": 1024,
+        "bytes": 1086130,
+        "sha256": "62eef054e02de0df04c70f47fd277670843c4a7b30a0194c8f693f55b60508f9",
+        "sameAsLocal": true
+      }
+    },
+    {
+      "id": "Site06",
+      "height": 5,
+      "status": 200,
+      "compatibility": "ok",
+      "keys": [
+        "site_id",
+        "heightmap_url",
+        "horizon_mask",
+        "ephemeris_timeline",
+        "windows",
+        "metrics",
+        "resolution",
+        "provenance",
+        "coordinates",
+        "target",
+        "heightmap",
+        "observer_height_m"
+      ],
+      "addedKeys": [],
+      "removedKeys": [],
+      "changedKeys": [],
+      "frames": 1464,
+      "horizon": 3600,
+      "metrics": {
+        "sun_visible_sample_fraction": 0.28005464480874315,
+        "earth_visible_sample_fraction": 0.10314207650273224,
+        "co_visibility_sample_fraction": 0
+      },
+      "resolution": {
+        "horizon_step_deg": 0.1,
+        "source_step_hours": 1,
+        "response_step_hours": 1,
+        "start_utc": "2026-11-01T00:00:00Z",
+        "end_utc": "2026-12-31T23:00:00Z",
+        "window_method": "sample_hold_until_next_hour; clipped at range end; no crossing refinement",
+        "visibility_rule": "body center elevation > circular linear horizon; equality is false",
+        "height_method": "precomputed horizon; ephemeris angles reused from 2 m (approximation)"
+      }
+    },
+    {
+      "id": "Site07",
+      "height": 2,
+      "status": 200,
+      "compatibility": "ok",
+      "keys": [
+        "site_id",
+        "heightmap_url",
+        "horizon_mask",
+        "ephemeris_timeline",
+        "windows",
+        "metrics",
+        "resolution",
+        "provenance",
+        "coordinates",
+        "target",
+        "heightmap",
+        "observer_height_m"
+      ],
+      "addedKeys": [],
+      "removedKeys": [],
+      "changedKeys": [],
+      "frames": 1464,
+      "horizon": 3600,
+      "metrics": {
+        "sun_visible_sample_fraction": 1,
+        "earth_visible_sample_fraction": 0.48633879781420764,
+        "co_visibility_sample_fraction": 0.48633879781420764
+      },
+      "resolution": {
+        "horizon_step_deg": 0.1,
+        "source_step_hours": 1,
+        "response_step_hours": 1,
+        "start_utc": "2026-11-01T00:00:00Z",
+        "end_utc": "2026-12-31T23:00:00Z",
+        "window_method": "sample_hold_until_next_hour; clipped at range end; no crossing refinement",
+        "visibility_rule": "body center elevation > circular linear horizon; equality is false",
+        "height_method": "native ephemeris observer height"
+      },
+      "png": {
+        "status": 200,
+        "width": 1024,
+        "height": 1024,
+        "bytes": 1264994,
+        "sha256": "03839ae84f9ae84b05c0ab750b6aa0f5cbab2b3b9d12544710cc1cdedd188662",
+        "sameAsLocal": true
+      }
+    },
+    {
+      "id": "Site07",
+      "height": 5,
+      "status": 200,
+      "compatibility": "ok",
+      "keys": [
+        "site_id",
+        "heightmap_url",
+        "horizon_mask",
+        "ephemeris_timeline",
+        "windows",
+        "metrics",
+        "resolution",
+        "provenance",
+        "coordinates",
+        "target",
+        "heightmap",
+        "observer_height_m"
+      ],
+      "addedKeys": [],
+      "removedKeys": [],
+      "changedKeys": [],
+      "frames": 1464,
+      "horizon": 3600,
+      "metrics": {
+        "sun_visible_sample_fraction": 1,
+        "earth_visible_sample_fraction": 0.5204918032786885,
+        "co_visibility_sample_fraction": 0.5204918032786885
+      },
+      "resolution": {
+        "horizon_step_deg": 0.1,
+        "source_step_hours": 1,
+        "response_step_hours": 1,
+        "start_utc": "2026-11-01T00:00:00Z",
+        "end_utc": "2026-12-31T23:00:00Z",
+        "window_method": "sample_hold_until_next_hour; clipped at range end; no crossing refinement",
+        "visibility_rule": "body center elevation > circular linear horizon; equality is false",
+        "height_method": "precomputed horizon; ephemeris angles reused from 2 m (approximation)"
+      }
+    },
+    {
+      "id": "Site11",
+      "height": 2,
+      "status": 200,
+      "compatibility": "ok",
+      "keys": [
+        "site_id",
+        "heightmap_url",
+        "horizon_mask",
+        "ephemeris_timeline",
+        "windows",
+        "metrics",
+        "resolution",
+        "provenance",
+        "coordinates",
+        "target",
+        "heightmap",
+        "observer_height_m"
+      ],
+      "addedKeys": [],
+      "removedKeys": [],
+      "changedKeys": [],
+      "frames": 1464,
+      "horizon": 3600,
+      "metrics": {
+        "sun_visible_sample_fraction": 0.5607923497267759,
+        "earth_visible_sample_fraction": 0.523224043715847,
+        "co_visibility_sample_fraction": 0.47540983606557374
+      },
+      "resolution": {
+        "horizon_step_deg": 0.1,
+        "source_step_hours": 1,
+        "response_step_hours": 1,
+        "start_utc": "2026-11-01T00:00:00Z",
+        "end_utc": "2026-12-31T23:00:00Z",
+        "window_method": "sample_hold_until_next_hour; clipped at range end; no crossing refinement",
+        "visibility_rule": "body center elevation > circular linear horizon; equality is false",
+        "height_method": "native ephemeris observer height"
+      },
+      "png": {
+        "status": 200,
+        "width": 1024,
+        "height": 1024,
+        "bytes": 1301439,
+        "sha256": "809c9d703362e4038858b0f4c01a060309af77f78cb327d9457fa5b8824ff40e",
+        "sameAsLocal": true
+      }
+    },
+    {
+      "id": "Site11",
+      "height": 5,
+      "status": 200,
+      "compatibility": "ok",
+      "keys": [
+        "site_id",
+        "heightmap_url",
+        "horizon_mask",
+        "ephemeris_timeline",
+        "windows",
+        "metrics",
+        "resolution",
+        "provenance",
+        "coordinates",
+        "target",
+        "heightmap",
+        "observer_height_m"
+      ],
+      "addedKeys": [],
+      "removedKeys": [],
+      "changedKeys": [],
+      "frames": 1464,
+      "horizon": 3600,
+      "metrics": {
+        "sun_visible_sample_fraction": 1,
+        "earth_visible_sample_fraction": 0.523224043715847,
+        "co_visibility_sample_fraction": 0.523224043715847
+      },
+      "resolution": {
+        "horizon_step_deg": 0.1,
+        "source_step_hours": 1,
+        "response_step_hours": 1,
+        "start_utc": "2026-11-01T00:00:00Z",
+        "end_utc": "2026-12-31T23:00:00Z",
+        "window_method": "sample_hold_until_next_hour; clipped at range end; no crossing refinement",
+        "visibility_rule": "body center elevation > circular linear horizon; equality is false",
+        "height_method": "precomputed horizon; ephemeris angles reused from 2 m (approximation)"
+      }
+    },
+    {
+      "id": "Site20v2",
+      "height": 2,
+      "status": 200,
+      "compatibility": "ok",
+      "keys": [
+        "site_id",
+        "heightmap_url",
+        "horizon_mask",
+        "ephemeris_timeline",
+        "windows",
+        "metrics",
+        "resolution",
+        "provenance",
+        "coordinates",
+        "target",
+        "heightmap",
+        "observer_height_m"
+      ],
+      "addedKeys": [],
+      "removedKeys": [],
+      "changedKeys": [],
+      "frames": 1464,
+      "horizon": 3600,
+      "metrics": {
+        "sun_visible_sample_fraction": 0.44808743169398907,
+        "earth_visible_sample_fraction": 0.33879781420765026,
+        "co_visibility_sample_fraction": 0.08060109289617487
+      },
+      "resolution": {
+        "horizon_step_deg": 0.1,
+        "source_step_hours": 1,
+        "response_step_hours": 1,
+        "start_utc": "2026-11-01T00:00:00Z",
+        "end_utc": "2026-12-31T23:00:00Z",
+        "window_method": "sample_hold_until_next_hour; clipped at range end; no crossing refinement",
+        "visibility_rule": "body center elevation > circular linear horizon; equality is false",
+        "height_method": "native ephemeris observer height"
+      },
+      "png": {
+        "status": 200,
+        "width": 1024,
+        "height": 1024,
+        "bytes": 1150767,
+        "sha256": "6711dd4381aca24911d0c1d233e3067d02d3aa16d6b1e6b4c35c26d801d4bb76",
+        "sameAsLocal": true
+      }
+    },
+    {
+      "id": "Site20v2",
+      "height": 5,
+      "status": 200,
+      "compatibility": "ok",
+      "keys": [
+        "site_id",
+        "heightmap_url",
+        "horizon_mask",
+        "ephemeris_timeline",
+        "windows",
+        "metrics",
+        "resolution",
+        "provenance",
+        "coordinates",
+        "target",
+        "heightmap",
+        "observer_height_m"
+      ],
+      "addedKeys": [],
+      "removedKeys": [],
+      "changedKeys": [],
+      "frames": 1464,
+      "horizon": 3600,
+      "metrics": {
+        "sun_visible_sample_fraction": 0.630464480874317,
+        "earth_visible_sample_fraction": 0.38456284153005466,
+        "co_visibility_sample_fraction": 0.1871584699453552
+      },
+      "resolution": {
+        "horizon_step_deg": 0.1,
+        "source_step_hours": 1,
+        "response_step_hours": 1,
+        "start_utc": "2026-11-01T00:00:00Z",
+        "end_utc": "2026-12-31T23:00:00Z",
+        "window_method": "sample_hold_until_next_hour; clipped at range end; no crossing refinement",
+        "visibility_rule": "body center elevation > circular linear horizon; equality is false",
+        "height_method": "precomputed horizon; ephemeris angles reused from 2 m (approximation)"
+      }
+    },
+    {
+      "id": "Site23",
+      "height": 2,
+      "status": 200,
+      "compatibility": "ok",
+      "keys": [
+        "site_id",
+        "heightmap_url",
+        "horizon_mask",
+        "ephemeris_timeline",
+        "windows",
+        "metrics",
+        "resolution",
+        "provenance",
+        "coordinates",
+        "target",
+        "heightmap",
+        "observer_height_m"
+      ],
+      "addedKeys": [],
+      "removedKeys": [],
+      "changedKeys": [],
+      "frames": 1464,
+      "horizon": 3600,
+      "metrics": {
+        "sun_visible_sample_fraction": 0.5437158469945356,
+        "earth_visible_sample_fraction": 0.3463114754098361,
+        "co_visibility_sample_fraction": 0.13866120218579234
+      },
+      "resolution": {
+        "horizon_step_deg": 0.1,
+        "source_step_hours": 1,
+        "response_step_hours": 1,
+        "start_utc": "2026-11-01T00:00:00Z",
+        "end_utc": "2026-12-31T23:00:00Z",
+        "window_method": "sample_hold_until_next_hour; clipped at range end; no crossing refinement",
+        "visibility_rule": "body center elevation > circular linear horizon; equality is false",
+        "height_method": "native ephemeris observer height"
+      },
+      "png": {
+        "status": 200,
+        "width": 1024,
+        "height": 1024,
+        "bytes": 1183728,
+        "sha256": "98ef60556d4fdd7fc40d27fd554e99f3cdf5a6ab8f5d5b091128abb127b7a859",
+        "sameAsLocal": true
+      }
+    },
+    {
+      "id": "Site23",
+      "height": 5,
+      "status": 200,
+      "compatibility": "ok",
+      "keys": [
+        "site_id",
+        "heightmap_url",
+        "horizon_mask",
+        "ephemeris_timeline",
+        "windows",
+        "metrics",
+        "resolution",
+        "provenance",
+        "coordinates",
+        "target",
+        "heightmap",
+        "observer_height_m"
+      ],
+      "addedKeys": [],
+      "removedKeys": [],
+      "changedKeys": [],
+      "frames": 1464,
+      "horizon": 3600,
+      "metrics": {
+        "sun_visible_sample_fraction": 0.7486338797814208,
+        "earth_visible_sample_fraction": 0.4105191256830601,
+        "co_visibility_sample_fraction": 0.29098360655737704
+      },
+      "resolution": {
+        "horizon_step_deg": 0.1,
+        "source_step_hours": 1,
+        "response_step_hours": 1,
+        "start_utc": "2026-11-01T00:00:00Z",
+        "end_utc": "2026-12-31T23:00:00Z",
+        "window_method": "sample_hold_until_next_hour; clipped at range end; no crossing refinement",
+        "visibility_rule": "body center elevation > circular linear horizon; equality is false",
+        "height_method": "precomputed horizon; ephemeris angles reused from 2 m (approximation)"
+      }
+    }
+  ],
+  "features": [
+    {
+      "path": "/sites/Site04/metadata",
+      "status": 200,
+      "cors": null,
+      "data": {
+        "site_id": "Site04",
+        "coordinates": {
+          "latitude": -89.762838975107,
+          "longitude": 187.65124022411365
+        },
+        "status": "ready",
+        "source": "precomputed"
+      }
+    },
+    {
+      "path": "/sites/Site04?observer_height_m=10",
+      "status": 400,
+      "cors": null,
+      "data": {
+        "error": "querystring/observer_height_m must be equal to one of the allowed values"
+      }
+    },
+    {
+      "path": "/sites/Site04?start_utc=2026-11-14T00:00:00Z&end_utc=2026-11-15T00:00:00Z&step_hours=3",
+      "status": 200,
+      "cors": null,
+      "data": {
+        "keys": [
+          "site_id",
+          "heightmap_url",
+          "horizon_mask",
+          "ephemeris_timeline",
+          "windows",
+          "metrics",
+          "resolution",
+          "provenance",
+          "coordinates",
+          "target",
+          "heightmap",
+          "observer_height_m"
+        ],
+        "frames": 9,
+        "windows": [
+          {
+            "condition": "sun_visible",
+            "start_utc": "2026-11-14T00:00:00Z",
+            "end_utc": "2026-11-15T00:00:00Z",
+            "duration_hours": 24,
+            "truncated_start": true,
+            "truncated_end": true
+          }
+        ],
+        "metrics": {
+          "sun_visible_sample_fraction": 1,
+          "earth_visible_sample_fraction": 0,
+          "co_visibility_sample_fraction": 0
+        },
+        "resolution": {
+          "horizon_step_deg": 0.1,
+          "source_step_hours": 1,
+          "response_step_hours": 3,
+          "start_utc": "2026-11-14T00:00:00Z",
+          "end_utc": "2026-11-15T00:00:00Z",
+          "window_method": "sample_hold_until_next_hour; clipped at range end; no crossing refinement",
+          "visibility_rule": "body center elevation > circular linear horizon; equality is false",
+          "height_method": "native ephemeris observer height"
+        }
+      }
+    },
+    {
+      "path": "/sites/Site04/export?format=csv&start_utc=2026-11-14T00:00:00Z&end_utc=2026-11-15T00:00:00Z",
+      "status": 200,
+      "cors": null,
+      "data": "condition,start_utc,end_utc,duration_hours,truncated_start,truncated_end\r\nsun_visible,2026-11-14T00:00:00Z,2026-11-15T00:00:00Z,24,true,true\r\n"
+    }
+  ]
+}
