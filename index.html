@@ -9,6 +9,12 @@
   <body>
     <div id="app" class="app-shell">
       <div id="viewport" class="viewport" aria-label="Vista tridimensional del terreno lunar"></div>
+      <dl class="scene-hud" aria-label="Datos de misión sobre la escena">
+        <div class="scene-hud__item"><dt>Hora UTC</dt><dd id="hud-utc">—</dd><small id="hud-date">—</small></div>
+        <div class="scene-hud__item"><dt>Sol</dt><dd id="hud-sun">—</dd><small id="hud-sun-angle">—</small></div>
+        <div class="scene-hud__item"><dt>Tierra · DTE</dt><dd id="hud-earth">—</dd><small id="hud-earth-angle">—</small></div>
+        <div class="scene-hud__item"><dt>Batería simulada</dt><dd id="hud-battery">—</dd><progress id="hud-battery-bar" aria-label="Batería simulada" max="100" value="0"></progress></div>
+      </dl>
 
       <header class="app-header" id="app-header">
         <div class="app-header__brand">

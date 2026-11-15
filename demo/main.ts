@@ -1,5 +1,6 @@
 import './ui/tokens.css';
 import './ui/ui.css';
+import './ui/mission.css';
 import { Vector3 } from 'three';
 import { BackendClient, LunarEngine, decodeHeightmap16, createMockSite } from '../src/index';
 import type { SiteData, TimeState } from '../src/data';
@@ -398,6 +399,7 @@ const timeline = new TimelineWidget(byId('timeline-mount'), {
 
 function setPanelOpen(open: boolean): void {
   controlPanel.dataset.open = String(open);
+  controlPanel.inert = !open;
   appShell.classList.toggle('panel-collapsed', !open);
   panelToggle.setAttribute('aria-expanded', String(open));
   panelToggle.setAttribute('aria-label', open ? 'Ocultar controles' : 'Mostrar controles');
@@ -420,11 +422,11 @@ statusToggle.addEventListener('click', () => {
 statusClose.addEventListener('click', () => setStatusOpen(false), { signal });
 
 setPanelOpen(!isMobileViewport());
-setStatusOpen(!isMobileViewport());
+setStatusOpen(false);
 const mobileQuery = window.matchMedia('(max-width: 720px)');
 listen(mobileQuery, 'change', () => {
   setPanelOpen(!mobileQuery.matches);
-  setStatusOpen(!mobileQuery.matches);
+  setStatusOpen(false);
 });
 
 function sourceLabel(): string {
@@ -516,6 +518,12 @@ function updateBeamStatus(): void {
 
 function updateStatus(state: TimeState): void {
   const conditions = state.conditions;
+  setText(byId('hud-utc'), new Date(state.timestampMs).toISOString().slice(11, 19));
+  setText(byId('hud-date'), new Date(state.timestampMs).toISOString().slice(0, 10));
+  setText(byId('hud-sun'), conditions.sun_visible ? 'Visible' : 'Oculto');
+  setText(byId('hud-earth'), conditions.earth_visible ? 'Enlace directo' : 'Enlace bloqueado');
+  setText(byId('hud-sun-angle'), `Elevación ${formatSigned(state.sun.elevation_deg)}°`);
+  setText(byId('hud-earth-angle'), `Elevación ${formatSigned(state.earth.elevation_deg)}°`);
   const co = conditions.co_visibility;
 
   setText(coValue, co ? 'Sí' : 'No');
@@ -535,6 +543,8 @@ function updateStatus(state: TimeState): void {
   setBadgeText('dte-badge', conditions.earth_visible ? 'DTE: activo' : 'DTE: bloqueado', conditions.earth_visible ? 'ok' : 'danger');
 
   const telemetry = engine?.getPowerTelemetry();
+  setText(byId('hud-battery'), telemetry ? `${telemetry.battery_pct.toFixed(1)}%` : '—');
+  byId<HTMLProgressElement>('hud-battery-bar').value = telemetry?.battery_pct ?? 0;
   batteryBar.setValue(telemetry?.battery_pct ?? 0);
   setText(
     powerTelemetry,

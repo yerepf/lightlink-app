@@ -4,16 +4,16 @@ Rediseño de la capa de presentación del demo. No modifica la lógica del motor
 
 ## Paleta
 
-La interfaz usa verde bosque y crema. Los valores base viven en `demo/ui/tokens.css`; `src/palette.ts` replica únicamente los colores de overlays que Three.js no puede leer desde CSS.
+La interfaz vigente es un espacio técnico de planificación, con verde apagado, Inter y superficies planas. `demo/main.ts` carga `tokens.css`, `ui.css` y finalmente `mission.css`: esta última define las sustituciones efectivas. `DESIGN.md` documenta el sistema vigente y `PRODUCT.md` separa la experiencia actual del futuro modo Explorer, todavía no implementado. `src/palette.ts` conserva los colores científicos de overlays 3D.
 
 | Token | Valor | Uso |
 | --- | --- | --- |
-| `--color-background` | `#141e12` | Fondo de app |
-| `--bg-1` / `--bg-2` / `--bg-3` | `#1b2819` / `#263323` / `#2f3e2b` | Paneles y superficies |
-| `--color-primary` | `#ebd7b0` | Acento UI |
-| `--color-text` | `#f5ebdd` | Texto principal |
-| `--text-1` / `--text-2` | `#f5ebddb3` / `#f5ebdd80` | Texto secundario / decorativo |
-| `--hairline` / `--hairline-soft` | `#ebd7b029` / `#f5ebdd17` | Bordes |
+| `--color-background` | `#101710` | Fondo de app |
+| `--bg-1` / `--bg-2` / `--bg-3` | `#172017` / `#202b20` / `#2b382a` | Paneles y superficies |
+| `--color-primary` | `#bdcaaa` | Acento UI |
+| `--color-text` | `#edf0e7` | Texto principal |
+| `--text-1` / `--text-2` | `#bec8b8` / `#91a08b` | Texto secundario / atenuado |
+| `--hairline` / `--hairline-soft` | `#85977b55` / `#85977b33` | Bordes |
 | `--data-sun` | `#e8a93c` | Sol y avisos |
 | `--data-earth` | `#7fb0c4` | Tierra |
 | `--data-horizon` | `#a893c0` | Horizonte |
@@ -21,7 +21,7 @@ La interfaz usa verde bosque y crema. Los valores base viven en `demo/ui/tokens.
 | `--data-danger` | `#d9694f` | Bloqueos, playhead y errores |
 | `--data-warn` | `#e8a93c` | Batería en reserva |
 
-Reglas de contraste AA:
+Uso de contraste (la conformidad debe verificarse sobre las superficies efectivas):
 
 - `--text-0` y `--text-1` se usan para texto pequeño sobre `--bg-1`/`--bg-2`.
 - `--text-2` queda para iconos, puntos, ticks y elementos decorativos.
@@ -33,6 +33,8 @@ Reglas de contraste AA:
 - `demo/main.ts`: orquestación entre `LunarEngine`, `BackendClient`, `LiveClock` y los widgets.
 - `demo/ui/tokens.css`: tokens de color, tipografía, espaciado, radios, sombras, movimiento, z-index y breakpoints.
 - `demo/ui/ui.css`: estilos del shell, panel, acordeones, controles, estado, brújula, timeline y responsive.
+- `demo/ui/mission.css`: presentación técnica vigente, HUD sobre escena, Inter local, paneles planos y ajustes responsive; se carga al final.
+- `public/fonts/InterVariable.woff2` y `Inter-LICENSE.txt`: Inter variable servido localmente. Procedencia: repositorio oficial `rsms/inter`, rama `master`, `docs/font-files/InterVariable.woff2` y `LICENSE.txt`; no se ha fijado aquí un commit de origen.
 - `demo/ui/dom.ts`: helpers de DOM, formato UTC y anuncios accesibles.
 - `demo/ui/icons.ts`: iconografía SVG en línea.
 - `demo/ui/components/`: `Panel`, `AccordionSection`, `Select`, `SegmentedControl`, `Slider`, `Switch`, `Button`, `Badge`, `ProgressBar`, `Tooltip`, `InputField`.
@@ -43,9 +45,10 @@ Reglas de contraste AA:
 
 ## Composición de la pantalla
 
-- Header compacto con marca, sitio activo, badges de en vivo/DTE, rendimiento y toggles de panel.
+- Header compacto con marca, sitio activo, estado en vivo y controles de panel; DTE se muestra junto a Tierra en el HUD y el rendimiento no ocupa la cabecera.
+- HUD sin tarjeta sobre la escena: hora UTC, Sol, Tierra/DTE, elevaciones y batería simulada. Se sincroniza con el mismo estado que los detalles.
 - Panel izquierdo con acordeones: Sitio, Vista, Capas, Nuevo punto, Información.
-- Panel de estado flotante a la derecha: co-visibilidad, Sol/Tierra, muestra horaria, cobertura, energía, ciencia y diagnóstico visual.
+- Panel de estado a la derecha, cerrado al iniciar y accesible con «Detalles»: co-visibilidad, Sol/Tierra, muestra horaria, cobertura, energía, ciencia y diagnóstico visual.
 - Brújula HUD sobre la esquina inferior izquierda.
 - Timeline de ancho completo con carriles de Sol, Tierra y co-visibilidad.
 
@@ -69,7 +72,7 @@ Reglas de contraste AA:
 
 ## Responsive
 
-- Menos de 720 px: panel de controles como bottom sheet, panel de estado como overlay con botón de cierre, timeline simplificada y brújula reducida.
+- Hasta 720 px: panel de controles inferior, detalles como overlay con cierre, HUD en dos columnas, timeline de 210 px con filas para velocidades y lectura UTC, y brújula reducida.
 - Menos de 1100 px: panel y estado más estrechos.
 - Se respeta `prefers-reduced-motion`.
 
@@ -82,6 +85,8 @@ npm test
 ```
 
 No hay un script `lint` configurado en este repositorio. El build incluye `tsc` y la compilación del demo.
+
+La documentación se extrajo del código y de las decisiones aprobadas. El launcher y el detector de Impeccable no estuvieron disponibles por falta de binario/acceso al caché; no se afirma que sus comprobaciones se hayan ejecutado.
 
 Los colores 3D se limitan a overlays y guías: horizonte, rayo solar, enlace DTE, sky paths, marcadores científicos y LED de batería. No se modifican terreno, rampa de pendientes, iluminación, estrellas, Sol, bloom ni lens flare.
 
