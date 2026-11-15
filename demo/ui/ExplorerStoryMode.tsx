@@ -5,6 +5,8 @@ import { el } from './dom';
 import { ExplorerAudio } from './ExplorerAudio';
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6;
+const poses = ['explorer-astronaut', 'explorer-astronaut-explain', 'explorer-astronaut-point', 'explorer-astronaut-think',
+  'explorer-astronaut-scan', 'explorer-astronaut-compare', 'explorer-astronaut-salute'];
 const titles = ['Welcome to the lunar south pole', 'A landing on the wrong slope', 'Find light and signal', 'Can we run the experiment?', 'How we know what we see', 'Compare before you commit'];
 const narration = [
   'Look around. The ridges here can catch sunlight for long stretches, while craters that stay dark may hold water ice. We need a place where the Sun can power our lander and Earth is in sight for a direct link.',
@@ -27,7 +29,10 @@ export class ExplorerStoryMode {
   private shadowHours = 0;
   private comparison = '';
   private note = '';
+  private pose = 0;
+  private preloaded = false;
   private readonly root: HTMLElement;
+  private readonly portrait = el('img', { alt: '', width: 720, height: 868 });
   private readonly title = el('h2', { id: 'story-title', tabindex: -1 });
   private readonly label = el('p', { class: 'story__progress' });
   private readonly copy = el('p', { class: 'story__copy' });
@@ -50,8 +55,7 @@ export class ExplorerStoryMode {
     planner(): void;
   }) {
     this.root = el('section', { class: 'story', hidden: true, 'aria-labelledby': 'story-title' },
-      el('div', { class: 'story__portrait' },
-        el('img', { src: `${import.meta.env.BASE_URL}art/explorer-astronaut.webp`, alt: '', width: 720, height: 868 })),
+      el('div', { class: 'story__portrait' }, this.portrait),
       el('div', { class: 'flight-panel story__panel' },
         el('header', { class: 'story__head' }, el('span', { class: 'story__speaker' }, 'Astronaut'),
           el('div', { class: 'story__audio-controls' }, this.sound, this.replay)),
@@ -61,13 +65,23 @@ export class ExplorerStoryMode {
       this.updateAudioControls();
       if (this.audio.enabled) this.speak();
     });
-    this.replay.addEventListener('click', () => this.speak());
+    this.replay.addEventListener('click', () => { this.showPose((this.pose + 1) % poses.length); this.speak(); });
     this.updateAudioControls();
     mount.append(this.root);
   }
 
   get step() { return this.root.hidden || this.done ? 0 : this.storyStep; }
-  start() { this.root.hidden = false; this.done = false; this.go(1); }
+  start() {
+    this.root.hidden = false;
+    this.done = false;
+    this.go(1);
+    if (!this.preloaded) {
+      this.preloaded = true;
+      for (let i = 1; i < poses.length; i++) new Image().src = this.poseUrl(i);
+    }
+  }
+  private poseUrl(index: number) { return `${import.meta.env.BASE_URL}art/${poses[index]}.webp`; }
+  private showPose(index: number) { this.pose = index; this.portrait.src = this.poseUrl(index); }
   close() { this.root.hidden = true; this.audio.pause(); }
   setPageVisible(visible: boolean) {
     if (visible && !this.root.hidden) this.audio.resume();
@@ -102,12 +116,16 @@ export class ExplorerStoryMode {
   }
   message(note: string) { this.note = note; this.feedback.textContent = note; }
   setNoWindow(value: boolean) { this.noWindow = value; this.render(); }
-  seek(frames: readonly Frame[], time: number, batteryPct: number | undefined) {
+  seek(frames: readonly Frame[], time: number, coVisible: boolean, batteryPct: number | undefined) {
     if (this.step !== 3 || this.noWindow) return;
+    if (!coVisible) {
+      if (this.ready) { this.ready = false; this.note = ''; this.render(); }
+      return;
+    }
     const window = visibilitySummary(frames).windows.find(w => w.condition === 'co_visibility' && w.start <= time && time <= w.end);
     this.duration = window?.hours ?? 0;
     this.shadowHours = (batteryPct ?? 0) / SHADOW_DISCHARGE_PER_HOUR;
-    if (!this.ready) this.unlock('Window confirmed. The Sun and Earth are both visible.');
+    if (!this.ready) this.unlock('');
   }
 
   compared(recommendation: string) {
@@ -123,6 +141,8 @@ export class ExplorerStoryMode {
   private go(step: Step) {
     this.storyStep = step; this.ready = step === 5; this.note = ''; this.failed = false; this.noWindow = false;
     this.answered = false; this.comparison = '';
+    const nextPose = step - 1;
+    this.showPose(step !== 1 && this.pose === nextPose ? (nextPose + 1) % poses.length : nextPose);
     this.callbacks.enter(step);
     this.render(); this.title.focus({ preventScroll: true });
     if (!this.busy && !this.failed) {
@@ -172,7 +192,7 @@ export class ExplorerStoryMode {
         el('a', { href: 'https://ssd.jpl.nasa.gov/horizons/', target: '_blank', rel: 'noopener' }, 'JPL · Horizons')));
       if (step === 6) this.actions.append(this.button('Open comparison', this.callbacks.compare, !this.ready));
       this.actions.append(this.button(step === 6 ? 'Claim badge' : 'Continue', () => {
-        if (step === 6) { this.done = true; this.render(); this.title.focus(); this.audio.play('confirmed'); this.speak(); }
+        if (step === 6) { this.done = true; this.showPose(this.pose === poses.length - 1 ? 0 : poses.length - 1); this.render(); this.title.focus(); this.audio.play('confirmed'); this.speak(); }
         else this.go((step + 1) as Step);
       }, this.ready, !this.ready));
     }

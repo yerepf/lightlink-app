@@ -47,6 +47,9 @@ export class TimelineWidget {
   private readonly utcOutput: HTMLElement;
   private readonly sampleOutput: HTMLElement;
   private readonly ruler: HTMLElement;
+  private readonly coGuide = el('div', { class: 'timeline__co-guide', hidden: true });
+  private readonly coInstruction = el('p', { id: 'timeline-co-instruction', role: 'status' });
+  private readonly selectWindow = el('button', { class: 'flight-button', type: 'button' }, 'Jump to a window');
   private readonly lanes: Record<'sun' | 'earth' | 'co', HTMLElement>;
   private readonly ticksSvg: SVGSVGElement;
   private readonly playhead: HTMLElement;
@@ -172,7 +175,10 @@ export class TimelineWidget {
       this.liveStatusOutput,
     );
 
-    this.root = el('section', { class: 'timeline is-disabled', 'aria-label': 'Lunar timeline' }, top, this.ruler, bottom);
+    this.selectWindow.setAttribute('aria-describedby', this.coInstruction.id);
+    this.selectWindow.addEventListener('click', () => this.seekCoVisibility(), { signal: this.events.signal });
+    this.coGuide.append(this.coInstruction, this.selectWindow);
+    this.root = el('section', { class: 'timeline is-disabled', 'aria-label': 'Lunar timeline' }, top, this.coGuide, this.ruler, bottom);
     mount.append(this.root);
 
     this.bindEvents();
@@ -213,6 +219,33 @@ export class TimelineWidget {
 
   setStatus(text: string): void {
     setText(this.statusOutput, text);
+  }
+
+  setCoVisibilityGuide(state: 'choose' | 'outside' | 'confirmed' | null): void {
+    this.coGuide.hidden = state === null;
+    if (state === null) {
+      delete this.root.dataset.coGuide;
+      this.ruler.removeAttribute('aria-describedby');
+      return;
+    }
+    this.root.dataset.coGuide = state;
+    this.ruler.setAttribute('aria-describedby', this.coInstruction.id);
+    setText(this.coInstruction, {
+      choose: this.runs.some(run => run.co) ? 'Select a striped green window below.' : 'Jump to the available co-visibility sample.',
+      outside: 'Outside a window. Try a striped green band.',
+      confirmed: 'Window selected. Sun and Earth are both visible.',
+    }[state]);
+  }
+
+  private seekCoVisibility(): void {
+    if (!this.enabled || this.coGuide.hidden) return;
+    let closest: number | undefined;
+    for (const frame of this.frames) {
+      if (!frame.conditions.co_visibility) continue;
+      const time = Date.parse(frame.timestamp_utc);
+      if (closest === undefined || Math.abs(time - this.current) < Math.abs(closest - this.current)) closest = time;
+    }
+    if (closest !== undefined) this.callbacks.onSeek(closest);
   }
 
   setLiveState(state: LiveState): void {

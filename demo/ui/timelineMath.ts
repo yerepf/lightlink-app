@@ -41,7 +41,7 @@ const STEP_CANDIDATES = [
   30 * DAY_MS,
 ];
 
-const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const pad = (value: number, length = 2) => String(value).padStart(length, '0');
 

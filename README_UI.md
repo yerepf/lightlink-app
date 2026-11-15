@@ -8,7 +8,7 @@ The campaign uses the bundled `Site07` dataset. An astronaut speaks from the lef
 
 1. **Welcome to the lunar south pole.** Rotate the view or select **Let's begin**.
 2. **A landing on the wrong slope.** Activate relocation and choose a green point with a slope below 10°.
-3. **Find light and signal.** Scrub the timeline to a sample with both the Sun and Earth visible. If there is no such sample, try a different landing point.
+3. **Find light and signal.** Select a striped green window in the timeline or use **Jump to a window**. The guide confirms your selection when both the Sun and Earth are visible. If the landing point has no overlapping visibility, try another point.
 4. **Can we run the experiment?** Decide whether the visible window covers eight continuous hours. Battery life in shadow comes from the power simulation.
 5. **How we know what we see.** Read about the LOLA terrain and JPL Horizons ephemerides.
 6. **Compare before you commit.** Complete a valid comparison and return to the astronaut to claim the educational badge.

@@ -411,7 +411,10 @@ const timeline = new TimelineWidget(byId('timeline-mount'), {
     updateAt(ms);
     refreshLive();
     const state = engine?.getState();
-    if (siteData && state?.conditions.co_visibility) story.seek(siteData.ephemeris_timeline, state.timestampMs, engine?.getPowerTelemetry()?.battery_pct);
+    if (siteData && state && story.step === 3 && timeline.root.dataset.coGuide) {
+      timeline.setCoVisibilityGuide(state.conditions.co_visibility ? 'confirmed' : 'outside');
+      story.seek(siteData.ephemeris_timeline, state.timestampMs, state.conditions.co_visibility, engine?.getPowerTelemetry()?.battery_pct);
+    }
   },
   onPlay: rate => startPlayback(rate),
   onPause: () => {
@@ -420,6 +423,10 @@ const timeline = new TimelineWidget(byId('timeline-mount'), {
   },
   onLiveToggle: () => toggleLive(),
 });
+const storyTimelineSize = new ResizeObserver(() => {
+  appShell.style.setProperty('--story-timeline-height', `${timeline.root.getBoundingClientRect().height}px`);
+});
+storyTimelineSize.observe(timeline.root);
 
 const story = new ExplorerStoryMode(byId('story-mount'), {
   enter: enterStoryStep,
@@ -856,6 +863,7 @@ function openComparator() {
 
 function enterStoryStep(step: 1 | 2 | 3 | 4 | 5 | 6) {
   appShell.dataset.storyStep = String(step);
+  timeline.setCoVisibilityGuide(null);
   if (step === 1) { void prepareStory(); return; }
   if (step === 2) {
     setSlopeOverlay(true); setView('top');
@@ -868,6 +876,7 @@ function enterStoryStep(step: 1 | 2 | 3 | 4 | 5 | 6) {
     const { start } = coverage(siteData.ephemeris_timeline);
     updateAt(start);
     const any = siteData.ephemeris_timeline.some(frame => frame.conditions.co_visibility);
+    if (any) timeline.setCoVisibilityGuide('choose');
     story.setNoWindow(!any);
     if (!any) story.message('This point has no overlapping light and signal in the available data. Try another green point.');
   }
@@ -1100,6 +1109,7 @@ export function setMode(next: 'explorer' | 'planner') {
     story.start();
   } else {
     story.close();
+    timeline.setCoVisibilityGuide(null);
     if (!siteData && !request) void initialize();
     else if (!siteData && !loading) void initialize();
     else if (siteData && !loading) void fetchCatalog();
@@ -1131,6 +1141,7 @@ if (import.meta.hot) {
     disposed = true;
     request?.abort();
     catalogRequest?.abort(); comparator.close(); story.close();
+    storyTimelineSize.disconnect();
     if (cursorFrame) cancelAnimationFrame(cursorFrame);
     window.clearInterval(compassTimer);
     window.clearInterval(perfTimer);

@@ -72,8 +72,8 @@ test('ticks adapt to width and labels stay deterministic in UTC', () => {
   assert.ok(ticks.minor.length > ticks.major.length);
   assert.ok(ticks.major.every(tick => tick.ratio >= 0 && tick.ratio <= 1));
   assert.match(formatTickLabel(START + 12 * HOUR_MS, 6 * HOUR_MS), /12:00 UTC$/);
-  assert.equal(formatTickLabel(START + 12 * HOUR_MS, DAY_MS), '14 nov · 12:00');
-  assert.equal(formatTickLabel(START, 7 * DAY_MS), '14 nov 2026');
+  assert.equal(formatTickLabel(START + 12 * HOUR_MS, DAY_MS), '14 Nov · 12:00');
+  assert.equal(formatTickLabel(START, 7 * DAY_MS), '14 Nov 2026');
 });
 
 test('time ratios clamp to the visible interval', () => {
