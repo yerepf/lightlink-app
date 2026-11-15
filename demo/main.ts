@@ -1,6 +1,3 @@
-import './ui/tokens.css';
-import './ui/ui.css';
-import './ui/mission.css';
 import { Vector3 } from 'three';
 import { BackendClient, LunarEngine, decodeHeightmap16, createMockSite } from '../src/index';
 import type { SiteData, TimeState } from '../src/data';

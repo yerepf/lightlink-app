@@ -73,7 +73,9 @@ La dirección aprobada es un espacio técnico de planificación de misión. Su c
 
 Características principales: verde apagado, Inter, líneas finas, densidad funcional y esquinas mínimas.
 
-Esta captura describe la implementación vigente. `demo/main.ts` carga `tokens.css`, después `ui.css` y finalmente `mission.css`. Los valores efectivos de esta cabecera incluyen las sustituciones de `mission.css`; no copiar la paleta crema ni las sombras históricas de `tokens.css` como si fueran el resultado actual. Los colores científicos de datos permanecen en `tokens.css` y `src/palette.ts`.
+Esta captura describe el espacio técnico. `demo/start.ts` carga `tokens.css`, `ui.css`, `mission.css` y `start.css` en ese orden. Los valores efectivos de esta cabecera incluyen las sustituciones de `mission.css`. Los colores científicos de datos permanecen en `tokens.css` y `src/palette.ts`.
+
+El menú de inicio usa el grabado astronómico de la referencia como dirección visual. El verde de fondo `#101b0e` y el crema `#ead49a` enmarcan la marca y la acción «Iniciar». El título usa Libre Baskerville en negrita cursiva, servido localmente con su licencia OFL, y la acción usa Inter. En pantallas verticales la ilustración se encuadra debajo de la acción para conservar legibilidad.
 
 ## Colors
 

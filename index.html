@@ -4,10 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#141e12" />
-    <title>Lunar Co-Visibility Explorer</title>
+    <title>Light&amp;Link</title>
   </head>
   <body>
-    <div id="app" class="app-shell">
+    <main id="start-menu" class="start-menu" aria-labelledby="start-title">
+      <img class="start-menu__art" src="/art/start-sky.webp" alt="" width="1672" height="941" fetchpriority="high" />
+      <img class="start-menu__astronaut" src="/art/start-astronaut.webp" alt="" width="900" height="900" />
+      <div class="start-menu__content">
+        <div class="start-menu__brand">
+          <svg class="start-menu__mark" viewBox="0 0 160 108" fill="currentColor" aria-hidden="true">
+            <path d="M117 20A51 51 0 0 0 25 43L3 54l22 11a51 51 0 0 0 92 23 43 43 0 1 1 0-68Z"/>
+            <path d="M88 54c20-2 26-8 28-25 3 17 9 23 40 25-31 3-37 9-40 25-2-16-8-22-28-25Z"/>
+          </svg>
+          <h1 id="start-title">Light&amp;Link</h1>
+        </div>
+        <a class="start-menu__action" id="start-action" href="#mision">Iniciar</a>
+        <div class="start-menu__footer">
+          <a class="start-menu__exit" href="https://www.lightlink.club/">Salir</a>
+          <p class="start-menu__error" id="start-error" role="alert" hidden></p>
+          <noscript>Activa JavaScript para abrir la escena lunar.</noscript>
+        </div>
+      </div>
+    </main>
+    <div id="app" class="app-shell" hidden>
       <div id="viewport" class="viewport" aria-label="Vista tridimensional del terreno lunar"></div>
       <dl class="scene-hud" aria-label="Datos de misión sobre la escena">
         <div class="scene-hud__item"><dt>Hora UTC</dt><dd id="hud-utc">—</dd><small id="hud-date">—</small></div>
@@ -18,14 +37,15 @@
 
       <header class="app-header" id="app-header">
         <div class="app-header__brand">
-          <span class="app-header__mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <a class="mission-home" href="#inicio" aria-label="Volver al menú de inicio">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
               <path d="M20.2 14.2A8.5 8.5 0 0 1 9.8 3.8a8.5 8.5 0 1 0 10.4 10.4Z" />
               <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none" />
             </svg>
-          </span>
+            <span>Inicio</span>
+          </a>
           <div>
-            <h1>Lunar Co-Visibility Explorer</h1>
+            <h1 id="mission-title" tabindex="-1">Lunar Co-Visibility Explorer</h1>
             <p class="app-header__subtitle" id="site-subtitle">Terreno LOLA · Efemérides JPL Horizons · Visualización geométrica</p>
           </div>
         </div>
@@ -74,10 +94,7 @@
 
       <div class="sr-only" id="live-region" role="status" aria-live="polite"></div>
 
-      <noscript>
-        <p style="padding: 24px">Esta aplicación necesita JavaScript para visualizar el terreno lunar.</p>
-      </noscript>
     </div>
-    <script type="module" src="/demo/main.ts"></script>
+    <script type="module" src="/demo/start.ts"></script>
   </body>
 </html>

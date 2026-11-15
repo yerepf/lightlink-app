@@ -4,7 +4,7 @@ Rediseño de la capa de presentación del demo. No modifica la lógica del motor
 
 ## Paleta
 
-La interfaz vigente es un espacio técnico de planificación, con verde apagado, Inter y superficies planas. `demo/main.ts` carga `tokens.css`, `ui.css` y finalmente `mission.css`: esta última define las sustituciones efectivas. `DESIGN.md` documenta el sistema vigente y `PRODUCT.md` separa la experiencia actual del futuro modo Explorer, todavía no implementado. `src/palette.ts` conserva los colores científicos de overlays 3D.
+El espacio técnico de planificación usa verde apagado, Inter y superficies planas. `demo/start.ts` carga `tokens.css`, `ui.css`, `mission.css` y `start.css` en ese orden. `DESIGN.md` documenta el sistema vigente y `PRODUCT.md` separa la experiencia actual del futuro modo Explorer, todavía no implementado. `src/palette.ts` conserva los colores científicos de overlays 3D.
 
 | Token | Valor | Uso |
 | --- | --- | --- |
@@ -29,11 +29,13 @@ Uso de contraste (la conformidad debe verificarse sobre las superficies efectiva
 
 ## Estructura
 
-- `index.html`: shell de la aplicación (header, viewport, panel de controles, panel de estado, montajes de brújula y timeline, toast).
+- `index.html`: menú de inicio y shell de misión.
+- `demo/start.ts`: navegación entre el menú y `#mision`, con carga del motor al entrar y soporte para el historial del navegador.
+- `demo/ui/start.css` y `public/art/`: portada ilustrada en verde y crema, con encuadre para escritorio y móvil. «Salir» abre el sitio de Light&Link. El astronauta flota sobre el fondo y se queda quieto si el usuario prefiere reducir el movimiento.
 - `demo/main.ts`: orquestación entre `LunarEngine`, `BackendClient`, `LiveClock` y los widgets.
 - `demo/ui/tokens.css`: tokens de color, tipografía, espaciado, radios, sombras, movimiento, z-index y breakpoints.
 - `demo/ui/ui.css`: estilos del shell, panel, acordeones, controles, estado, brújula, timeline y responsive.
-- `demo/ui/mission.css`: presentación técnica vigente, HUD sobre escena, Inter local, paneles planos y ajustes responsive; se carga al final.
+- `demo/ui/mission.css`: presentación técnica vigente, HUD sobre escena, Inter local, paneles planos y ajustes responsive.
 - `public/fonts/InterVariable.woff2` y `Inter-LICENSE.txt`: Inter variable servido localmente. Procedencia: repositorio oficial `rsms/inter`, rama `master`, `docs/font-files/InterVariable.woff2` y `LICENSE.txt`; no se ha fijado aquí un commit de origen.
 - `demo/ui/dom.ts`: helpers de DOM, formato UTC y anuncios accesibles.
 - `demo/ui/icons.ts`: iconografía SVG en línea.
