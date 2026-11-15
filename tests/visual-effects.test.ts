@@ -27,10 +27,10 @@ test('tiled DTE raycaster hits the same first mountain and updates after terrain
   assert.equal(queries.firstHit(origin,direction,[],10),null);queries.dispose();
 });
 test('tactical state colors use authoritative condition combinations',()=>{
-  assert.equal(tacticalColor({sun_visible:true,earth_visible:true,co_visibility:true}),0x00ffaa);
-  assert.equal(tacticalColor({sun_visible:false,earth_visible:true,co_visibility:false}),0xffbd55);
-  assert.equal(tacticalColor({sun_visible:true,earth_visible:false,co_visibility:false}),0xffbd55);
-  assert.equal(tacticalColor({sun_visible:false,earth_visible:false,co_visibility:false}),0xff3344);
+  assert.equal(tacticalColor({sun_visible:true,earth_visible:true,co_visibility:true}),0xa8b99a);
+  assert.equal(tacticalColor({sun_visible:false,earth_visible:true,co_visibility:false}),0xe8a93c);
+  assert.equal(tacticalColor({sun_visible:true,earth_visible:false,co_visibility:false}),0xe8a93c);
+  assert.equal(tacticalColor({sun_visible:false,earth_visible:false,co_visibility:false}),0xd9694f);
 });
 
 

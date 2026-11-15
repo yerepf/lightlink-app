@@ -6,6 +6,7 @@ import { decodeHeightmap16 } from './png16.js';
 import { createTerrainLOD } from './terrainLOD.js';
 import { SurfaceCamera, mapExitFov, type ViewMode } from './SurfaceCamera.js';
 import { fitSolarShadow, linkColor } from './solar.js';
+import { SCENE_PALETTE } from './palette.js';
 import { createMoonBody } from './MoonBody.js';
 import { TerrainQueries, meshHeightAt } from './TerrainQueries.js';
 import { MissionEffects } from './MissionEffects.js';
@@ -64,8 +65,8 @@ export class LunarEngine {
   private centerY = 0;
   private observerHeight = 2;
   private exaggeration = 4;
-  private readonly sunRay = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(), 1, 0xffd066);
-  private readonly observerMarker = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), new THREE.MeshBasicMaterial({ color: 0x80ffd0 }));
+  private readonly sunRay = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(), 1, SCENE_PALETTE.sun);
+  private readonly observerMarker = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), new THREE.MeshBasicMaterial({ color: SCENE_PALETTE.ok }));
   private timeline?: Timeline;
   private radius = 15;
   private convergence = 0;
@@ -90,7 +91,7 @@ export class LunarEngine {
     if (this.ownsCanvas) container.appendChild(this.renderer.domElement);
     this.renderer.domElement.style.display = 'block';
     this.renderer.domElement.style.width = '100%'; this.renderer.domElement.style.height = '100%';
-    this.scene.background = null; this.renderer.setClearColor(0x000000, 1);
+    this.scene.background = null; this.renderer.setClearColor(SCENE_PALETTE.space, 1);
     this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.autoUpdate = false; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.sunLight.castShadow = true; this.sunLight.shadow.mapSize.set(2048, 2048);
     this.sunLight.shadow.normalBias = 0.08; this.sunLight.shadow.bias = -0.0005;
@@ -133,7 +134,7 @@ export class LunarEngine {
       return p.multiplyScalar(radius).add(observer);
     });
     const horizon = new THREE.Group();
-    if (points.length > 1) horizon.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: 0xa7a0ff, depthTest: false, transparent: true, opacity: 0.7 })));
+    if (points.length > 1) horizon.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: SCENE_PALETTE.horizon, depthTest: false, transparent: true, opacity: 0.7 })));
     for (const child of [...this.guides.children]) if (child.userData.horizon) { this.guides.remove(child); this.release(child); }
     horizon.userData.horizon = true; this.guides.add(horizon);
     if (this.moon) { this.scene.remove(this.moon.mesh); this.moon.dispose(); }
@@ -180,7 +181,7 @@ export class LunarEngine {
     this.sky.update(this.sunDirection, this.earthDirection, new THREE.Vector3());
     this.sunLight.position.copy(this.sunDirection).multiplyScalar(180).add(this.observer);
     this.sunRay.setDirection(this.sunDirection);
-    this.sunRay.setColor(state.conditions.sun_visible ? 0xffd066 : 0x715e40);
+    this.sunRay.setColor(state.conditions.sun_visible ? SCENE_PALETTE.sun : SCENE_PALETTE.sunDim);
     this.observerMarker.material.color.setHex(linkColor(state.conditions.earth_visible));
     this.lander.setConditions(state.conditions); this.lander.track(this.earthDirection);
     this.lander.origin(this.antennaOrigin); this.lander.panelTarget(this.panelOrigin);

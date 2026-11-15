@@ -1,4 +1,5 @@
 import { Box3, DirectionalLight, Vector3 } from 'three';
+import { SCENE_PALETTE } from './palette.js';
 /** Fit all eight corners in light space, not world X/Z, including elevated relief. */
 export function fitSolarShadow(light: DirectionalLight, bounds: Box3) {
   light.updateMatrixWorld(); light.target.updateMatrixWorld();
@@ -13,4 +14,4 @@ export function fitSolarShadow(light: DirectionalLight, bounds: Box3) {
   camera.near = Math.max(.001, -box.max.z - margin); camera.far = Math.max(camera.near + 1, -box.min.z + margin);
   camera.updateProjectionMatrix(); light.shadow.needsUpdate = true;
 }
-export function linkColor(visible: boolean): number { return visible ? 0x65ed91 : 0xff5d65; }
+export function linkColor(visible: boolean): number { return visible ? SCENE_PALETTE.ok : SCENE_PALETTE.danger; }

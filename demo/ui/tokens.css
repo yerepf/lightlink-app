@@ -1,0 +1,133 @@
+:root {
+  color-scheme: dark;
+
+  /* Palette — landing: forest green + cream. */
+  --color-background: #141e12;
+  --color-primary: #ebd7b0;
+  --color-surface: #263323;
+  --color-text: #f5ebdd;
+  --color-accent: #a8b99a;
+  --hairline: #ebd7b029;
+  --hairline-soft: #f5ebdd17;
+
+  /* App aliases */
+  --bg-0: var(--color-background);
+  --bg-1: #1b2819;
+  --bg-2: var(--color-surface);
+  --bg-3: #2f3e2b;
+  --border: var(--hairline);
+  --border-soft: var(--hairline-soft);
+  --text-0: var(--color-text);
+  --text-1: #f5ebddb3;
+  --text-2: #f5ebdd80;
+
+  /* UI accent */
+  --ui-accent: var(--color-primary);
+  --ui-accent-contrast: var(--color-background);
+  --ui-accent-soft: #ebd7b01f;
+  --ui-accent-hover: color-mix(in srgb, var(--ui-accent) 88%, var(--text-0) 12%);
+  --ui-accent-hover-border: color-mix(in srgb, var(--ui-accent) 60%, var(--text-0) 40%);
+
+  /* Data colors */
+  --data-sun: #e8a93c;
+  --data-earth: #7fb0c4;
+  --data-horizon: #a893c0;
+  --data-ok: var(--color-accent);
+  --data-danger: #d9694f;
+  --data-warn: #e8a93c;
+  --data-danger-ink: color-mix(in srgb, var(--data-danger) 65%, var(--text-0) 35%);
+  --data-horizon-ink: color-mix(in srgb, var(--data-horizon) 80%, var(--text-0) 20%);
+
+  /* Semantic surfaces */
+  --surface-0: var(--bg-0);
+  --surface-1: color-mix(in srgb, var(--bg-1) 88%, transparent);
+  --surface-2: color-mix(in srgb, var(--bg-2) 86%, transparent);
+  --surface-3: color-mix(in srgb, var(--bg-2) 65%, var(--bg-1));
+  --surface-hover: color-mix(in srgb, var(--text-0) 7%, transparent);
+  --surface-active: color-mix(in srgb, var(--ui-accent) 16%, transparent);
+  --border-strong: color-mix(in srgb, var(--border) 100%, var(--text-2) 10%);
+  --scrim: rgb(20 30 18 / 0.66);
+  --focus-ring: var(--ui-accent);
+  --focus-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 28%, transparent);
+
+  /* Typography */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, "Liberation Mono", monospace;
+  --text-xs: 0.6875rem;
+  --text-sm: 0.75rem;
+  --text-md: 0.875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.75rem;
+  --leading-tight: 1.15;
+  --leading-normal: 1.5;
+  --weight-normal: 450;
+  --weight-medium: 560;
+  --weight-bold: 700;
+
+  /* Spacing — 4/8 px grid */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-pill: 999px;
+
+  /* Elevation */
+  --shadow-panel: 0 18px 44px rgb(20 30 18 / 0.34), inset 0 1px 0 rgb(245 235 221 / 0.04);
+  --shadow-float: 0 12px 32px rgb(20 30 18 / 0.32);
+  --shadow-panel-left: 18px 0 44px rgb(20 30 18 / 0.22);
+  --shadow-timeline: 0 -18px 44px rgb(20 30 18 / 0.26);
+  --shadow-sheet: 0 -24px 60px rgb(20 30 18 / 0.45);
+  --shadow-focus: var(--focus-shadow);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+
+  /* Layout */
+  --header-h: 60px;
+  --panel-w: 356px;
+  --timeline-h: 174px;
+  --status-w: 340px;
+  --overlay-gap: 16px;
+
+  /* Z-index */
+  --z-compass: 28;
+  --z-status: 30;
+  --z-panel: 38;
+  --z-header: 42;
+  --z-timeline: 46;
+  --z-scrim: 50;
+  --z-toast: 60;
+  --z-tooltip: 80;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --header-h: 56px;
+    --timeline-h: 146px;
+    --overlay-gap: 10px;
+    --status-w: calc(100vw - 20px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+  }
+}

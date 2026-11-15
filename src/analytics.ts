@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { directionXYZ, lowerIndex, type Frame, type SiteData } from './data.js';
 import type { HeightField } from './terrain.js';
+import { SCENE_PALETTE } from './palette.js';
 
 export interface PowerTelemetry {
   timestamp_ms: number;
@@ -11,9 +12,9 @@ export interface PowerTelemetry {
   status_label: 'NOMINAL' | 'RESERVA' | 'CRÍTICO' | 'AGOTADA';
 }
 export function batteryIndicator(battery: number) {
-  return battery > 40 ? { color: 0x00ffaa, hz: .45 }
-    : battery >= 15 ? { color: 0xeab308, hz: 1 }
-    : { color: 0xff3344, hz: 2.5 };
+  return battery > 40 ? { color: SCENE_PALETTE.ok, hz: .45 }
+    : battery >= 15 ? { color: SCENE_PALETTE.warn, hz: 1 }
+    : { color: SCENE_PALETTE.danger, hz: 2.5 };
 }
 function input(frame: Frame) {
   const sunny = frame.conditions.sun_visible;
@@ -80,8 +81,8 @@ export function createSkyPaths(frames: readonly Frame[], convergence: number) {
     });
     const geometry = new T.BufferGeometry(); geometry.setAttribute('position', new T.BufferAttribute(positions, 3));
     const material = body === 'sun'
-      ? new T.LineDashedMaterial({ color: '#e9b949', dashSize: 5, gapSize: 3, transparent: true, opacity: .65, depthWrite: false })
-      : new T.LineBasicMaterial({ color: '#55ddec', transparent: true, opacity: .55, depthWrite: false });
+      ? new T.LineDashedMaterial({ color: SCENE_PALETTE.sun, dashSize: 5, gapSize: 3, transparent: true, opacity: .65, depthWrite: false })
+      : new T.LineBasicMaterial({ color: SCENE_PALETTE.earth, transparent: true, opacity: .55, depthWrite: false });
     const line = new T.Line(geometry, material); line.name = body;
     if (body === 'sun') line.computeLineDistances();
     group.add(line);
@@ -134,12 +135,12 @@ export function createScienceMarkers(candidates: ScienceCandidate[]) {
   const group = new T.Group(); group.name = 'scienceCandidates';
   const canvas = document.createElement('canvas'); canvas.width = 1024; canvas.height = 160;
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = 'rgba(5,15,24,.88)'; ctx.fillRect(0, 0, 1024, 160);
-  ctx.textAlign = 'center'; ctx.fillStyle = '#b4edff'; ctx.font = 'bold 38px system-ui';
+  ctx.fillStyle = SCENE_PALETTE.scienceLabelBackground; ctx.fillRect(0, 0, 1024, 160);
+  ctx.textAlign = 'center'; ctx.fillStyle = SCENE_PALETTE.scienceLabelText; ctx.font = 'bold 38px system-ui';
   ctx.fillText('Zona PSR (Posible Hielo de Agua)', 512, 65);
   ctx.font = '28px system-ui'; ctx.fillText('Candidato topográfico · sin confirmar', 512, 119);
   const texture = new T.CanvasTexture(canvas); texture.colorSpace = T.SRGBColorSpace;
-  const geometry = new T.SphereGeometry(.002, 12, 8), material = new T.MeshBasicMaterial({ color: '#9fdef1' });
+  const geometry = new T.SphereGeometry(.002, 12, 8), material = new T.MeshBasicMaterial({ color: SCENE_PALETTE.scienceMarker });
   const labelMaterial = new T.SpriteMaterial({ map: texture, transparent: true, depthTest: true, depthWrite: false });
   const markers = candidates.map(candidate => {
     const marker = new T.Group(); marker.position.set(candidate.x, 0, candidate.z);

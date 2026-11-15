@@ -33,8 +33,10 @@ test('battery clamps, thermal asymptotes, charging floor and LED thresholds', ()
   assert.equal(sun.power_telemetry[1].battery_pct, 89);
   assert.equal(sun.power_telemetry[2].battery_pct, 100);
   assert.ok(sun.power_telemetry[2].temp_celsius < 45);
-  assert.equal(batteryIndicator(40).color, 0xeab308);
-  assert.equal(batteryIndicator(15).color, 0xeab308);
+  assert.equal(batteryIndicator(41).color, 0xa8b99a);
+  assert.equal(batteryIndicator(40).color, 0xe8a93c);
+  assert.equal(batteryIndicator(15).color, 0xe8a93c);
+  assert.equal(batteryIndicator(14).color, 0xd9694f);
   assert.ok(batteryIndicator(14).hz > batteryIndicator(41).hz);
 });
 test('slope colors classify real planes and stay unchanged after 15x exaggeration', () => {

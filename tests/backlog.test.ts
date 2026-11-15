@@ -12,7 +12,7 @@ test('offline fixture is a valid 20km terrain with both DTE states',()=>{
   const timeline=new Timeline(site);
   const states=timeline.times.map(t=>Number(timeline.sample(t).conditions.earth_visible));
   assert.ok(states.includes(0)&&states.includes(1));
-  assert.equal(linkColor(true),0x65ed91);assert.equal(linkColor(false),0xff5d65);
+  assert.equal(linkColor(true),0xa8b99a);assert.equal(linkColor(false),0xd9694f);
 });
 test('solar shadow frustum includes all terrain corners for grazing directions',()=>{
   const bounds=new Box3(new Vector3(-8,-2,-8),new Vector3(8,30,8));

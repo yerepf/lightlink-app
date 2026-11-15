@@ -2,6 +2,7 @@ import * as T from 'three';
 import {keepBelowBloom,panelTexture} from './proceduralTextures.js';
 import type {Conditions} from './data.js';
 import { batteryIndicator } from './analytics.js';
+import { SCENE_PALETTE } from './palette.js';
 const UP=new T.Vector3(0,1,0),FORWARD=new T.Vector3(0,0,1);
 export function createLander(panelMap?: T.Texture) {
   const landerMesh=new T.Group();landerMesh.name='landerMesh';
@@ -33,7 +34,7 @@ export function createLander(panelMap?: T.Texture) {
   const emitter=new T.Object3D();emitter.position.z=.00045;dishPivot.add(emitter);
   add(new T.CylinderGeometry(.00004,.00004,.00045,6),dark,new T.Vector3(0,0,.000225),dishPivot).rotation.x=Math.PI/2;
   add(new T.SphereGeometry(.0001,12,8),white,new T.Vector3(0,0,.00045),dishPivot);
-  const beaconMaterial=new T.MeshBasicMaterial({color:new T.Color(0xff632b).multiplyScalar(3),toneMapped:false});
+  const beaconMaterial=new T.MeshBasicMaterial({color:new T.Color(SCENE_PALETTE.ok).multiplyScalar(3),toneMapped:false});
   add(new T.SphereGeometry(.00012,12,8),beaconMaterial,new T.Vector3(.0008,.0022,0));
   const legs:Array<{foot:T.Mesh;strut:T.Mesh;side:number}>=[];
   for(let i=0;i<4;i++){

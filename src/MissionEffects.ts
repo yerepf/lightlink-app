@@ -3,29 +3,30 @@ import { Lensflare, LensflareElement } from 'three/addons/objects/Lensflare.js';
 import type { Conditions } from './data.js';
 import { glowTexture } from './proceduralTextures.js';
 import { TerrainQueries } from './TerrainQueries.js';
+import { SCENE_PALETTE } from './palette.js';
 const UP=new T.Vector3(0,1,0);
-export function tacticalColor(c:Conditions){return c.co_visibility?0x00ffaa:c.sun_visible||c.earth_visible?0xffbd55:0xff3344;}
+export function tacticalColor(c:Conditions){return c.co_visibility?SCENE_PALETTE.ok:c.sun_visible||c.earth_visible?SCENE_PALETTE.warn:SCENE_PALETTE.danger;}
 export class MissionEffects {
   readonly group=new T.Group();
   readonly flare=new Lensflare();
   readonly beamMaterial=new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false,
-    uniforms:{time:{value:0},color:{value:new T.Color(0x00ffaa).multiplyScalar(3)}},
+    uniforms:{time:{value:0},color:{value:new T.Color(SCENE_PALETTE.ok).multiplyScalar(3)}},
     vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
     fragmentShader:`uniform float time;uniform vec3 color;varying vec2 vUv;void main(){float phase=fract(vUv.y*24.-time*.8);float pulse=pow(max(0.,1.-abs(phase-.5)*2.),7.);gl_FragColor=vec4(color,.10+.65*pulse);}`,
   });
   private readonly beam=new T.Mesh(new T.CylinderGeometry(1,1,1,8,1,true),this.beamMaterial);
-  private readonly core=new T.Mesh(new T.CylinderGeometry(1,1,1,6,1,true),new T.MeshBasicMaterial({color:0x00ffaa,transparent:true,opacity:.55,blending:T.AdditiveBlending,depthWrite:false,toneMapped:false}));
+  private readonly core=new T.Mesh(new T.CylinderGeometry(1,1,1,6,1,true),new T.MeshBasicMaterial({color:SCENE_PALETTE.ok,transparent:true,opacity:.55,blending:T.AdditiveBlending,depthWrite:false,toneMapped:false}));
   private readonly glow:T.Texture;
   private readonly impact:T.Sprite;
-  private readonly solar=new T.Mesh(new T.CylinderGeometry(.0035,.0008,1,16,1,true),new T.MeshBasicMaterial({color:0xffedbd,opacity:.06,transparent:true,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide}));
-  private readonly ring=new T.LineSegments(new T.BufferGeometry(),new T.LineBasicMaterial({color:0xffbd55,transparent:true,opacity:.8,depthWrite:false}));
+  private readonly solar=new T.Mesh(new T.CylinderGeometry(.0035,.0008,1,16,1,true),new T.MeshBasicMaterial({color:SCENE_PALETTE.sun,opacity:.06,transparent:true,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide}));
+  private readonly ring=new T.LineSegments(new T.BufferGeometry(),new T.LineBasicMaterial({color:SCENE_PALETTE.warn,transparent:true,opacity:.8,depthWrite:false}));
   private readonly direction=new T.Vector3();private readonly end=new T.Vector3();private readonly origin=new T.Vector3();
   private beamLength=1;
   private readonly halo:T.Texture;private readonly opticalRing:T.Texture;
   hit:T.Vector3|null=null;
   constructor(textures?:{glow:T.Texture;halo:T.Texture;opticalRing:T.Texture}){
     this.glow=textures?.glow??glowTexture();this.halo=textures?.halo??glowTexture();this.opticalRing=textures?.opticalRing??glowTexture(true);
-    this.impact=new T.Sprite(new T.SpriteMaterial({map:this.glow,color:0xff3344,blending:T.AdditiveBlending,depthWrite:false,toneMapped:false}));
+    this.impact=new T.Sprite(new T.SpriteMaterial({map:this.glow,color:SCENE_PALETTE.danger,blending:T.AdditiveBlending,depthWrite:false,toneMapped:false}));
     this.group.add(this.beam,this.core,this.impact,this.solar,this.ring);this.impact.visible=false;this.impact.material.color.multiplyScalar(6);
     this.flare.addElement(new LensflareElement(this.halo,180,0,new T.Color(.65,.55,.4)));
     this.flare.addElement(new LensflareElement(this.opticalRing,95,.35,new T.Color(.12,.18,.22)));
@@ -43,7 +44,7 @@ export class MissionEffects {
     if(!c.earth_visible){const hit=queries.firstHit(origin,this.direction,extras,origin.distanceTo(earthPosition));if(hit){this.hit=hit.point.clone();this.end.copy(hit.point);}}
     this.beamLength=Math.max(.000001,origin.distanceTo(this.end));
     for(const mesh of [this.beam,this.core]){mesh.position.copy(origin).add(this.end).multiplyScalar(.5);mesh.quaternion.setFromUnitVectors(UP,this.direction);mesh.scale.set(.00006,this.beamLength,.00006);}
-    const color=c.earth_visible?0x00ffaa:0xff3344;
+    const color=c.earth_visible?SCENE_PALETTE.ok:SCENE_PALETTE.danger;
     this.beamMaterial.uniforms.color.value.setHex(color).multiplyScalar(c.earth_visible?3:6);
     this.core.material.color.setHex(color).multiplyScalar(c.earth_visible?3:6);
     this.impact.visible=this.hit!==null;if(this.hit)this.impact.position.copy(this.hit).addScaledVector(this.direction,-.00002);
