@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { ManualOrbitControls } from './ManualOrbitControls.js';
 import { directionXYZ, parseSite, Timeline, type SiteData, type TimeState } from './data.js';
 import { analyseRelocation } from './relocation.js';
 import { type HeightField, type HeightDecoder } from './terrain.js';
@@ -37,7 +38,8 @@ export class LunarEngine {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(45, 1, 0.001, 1000);
-  readonly controls: OrbitControls;
+  readonly controls: ManualOrbitControls;
+  private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   readonly mapCamera = new THREE.OrthographicCamera(-15,15,15,-15,.001,2500);
   private readonly mapControls: OrbitControls;
   private mapActive = false;
@@ -118,7 +120,9 @@ export class LunarEngine {
     this.scene.add(this.root, this.sunLight, this.sunLight.target, new THREE.AmbientLight(0xffffff, 0.015), this.guides, this.lander.landerMesh, this.mission.group, this.mission.flare, this.cursorRing, this.landingRing);
     this.skyScene.add(this.sky.group);
     this.renderer.autoClear = false; this.renderer.info.autoReset = false;
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls = new ManualOrbitControls(this.camera, this.renderer.domElement);
+    this.syncCameraMotion();
+    this.reducedMotion.addEventListener('change', this.syncCameraMotion);
     this.mapCamera.up.set(0,0,-1);
     this.mapControls = new OrbitControls(this.mapCamera, this.renderer.domElement);
     this.mapControls.enabled = false; this.mapControls.enableRotate = false;
@@ -216,8 +220,9 @@ export class LunarEngine {
     }
     this.mapActive = false; this.mapControls.enabled = false;
     this.terrain?.setTopographic(mode === 'top');
-    this.view.transitionTo(this.observer, this.radius, mode, !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    this.view.transitionTo(this.observer, this.radius, mode, !this.reducedMotion.matches);
   }
+  private readonly syncCameraMotion = () => this.controls.setSmoothing(!this.reducedMotion.matches);
   private refreshTerrainBounds(): void {
     if (!this.terrain) return;
     this.centralBounds.setFromObject(this.terrain.group.children[0]);
@@ -434,6 +439,7 @@ export class LunarEngine {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true; this.request?.abort(); this.renderer.setAnimationLoop(null);
+    this.reducedMotion.removeEventListener('change', this.syncCameraMotion);
     disposeSkyPaths(this.skyPaths); this.scienceMarkers?.dispose();
     this.post.dispose(); this.queries.dispose(); this.lander.dispose(); this.mission.dispose();
     this.moon?.dispose(); this.release(this.skyScene); this.skyScene.clear(); this.terrain?.disposeMaterials(); this.mapControls.dispose(); this.sky.dispose(); this.sunLight.shadow.dispose(); this.resizeObserver.disconnect(); this.controls.dispose(); this.release(this.scene); this.scene.clear(); this.renderer.dispose();

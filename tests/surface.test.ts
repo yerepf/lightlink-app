@@ -4,6 +4,57 @@ import { Mesh, Vector3, PerspectiveCamera, OrthographicCamera } from 'three';
 import type { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createTerrainLOD } from '../src/terrainLOD.js';
 import { SurfaceCamera, mapExitFov } from '../src/SurfaceCamera.js';
+import { ManualOrbitControls } from '../src/ManualOrbitControls.js';
+
+function mouseOrbit() {
+  const camera = new PerspectiveCamera();
+  const canvas = Object.assign(new EventTarget(), {
+    clientHeight: 600, style: {}, getRootNode() { return this; }, setPointerCapture() {}, releasePointerCapture() {},
+  });
+  const controls = new ManualOrbitControls(camera, canvas as unknown as HTMLElement);
+  const view = new SurfaceCamera(camera, controls);
+  controls.setSmoothing(true);
+  view.configure(new Vector3(), 12, 'orbital');
+  const drag = () => {
+    for (const [kind, clientX] of [['pointerdown', 200], ['pointermove', 270], ['pointerup', 270]] as const) {
+      canvas.dispatchEvent(Object.assign(new Event(kind), { button: 0, pointerId: 1, pointerType: 'mouse', clientX, clientY: 300 }));
+    }
+  };
+  return { camera, controls, view, drag };
+}
+
+test('mouse orbit reacts during the drag and eases out at the same rate at 30 and 120 FPS', () => {
+  const slow = mouseOrbit(), fast = mouseOrbit();
+  const start = slow.camera.quaternion.clone();
+  slow.drag(); fast.drag();
+  const released = slow.camera.quaternion.clone();
+  assert.ok(start.angleTo(released) > 0.05);
+  for (let i = 0; i < 6; i++) slow.view.update(1 / 30);
+  for (let i = 0; i < 24; i++) fast.view.update(1 / 120);
+  assert.ok(released.angleTo(slow.camera.quaternion) > 0.2);
+  assert.ok(slow.camera.quaternion.angleTo(fast.camera.quaternion) < 1e-6);
+});
+
+test('reduced motion and preset changes discard the previous drag', () => {
+  const { camera, controls, view, drag } = mouseOrbit();
+  drag();
+  const released = camera.quaternion.clone();
+  controls.setSmoothing(false);
+  view.update(1 / 60);
+  assert.ok(camera.quaternion.angleTo(released) < 1e-6);
+  drag();
+  const direct = camera.quaternion.clone();
+  view.update(1 / 60);
+  assert.ok(camera.quaternion.angleTo(direct) < 1e-6);
+  controls.setSmoothing(true);
+  drag();
+  const eye = new Vector3(1, 2, 3);
+  view.configure(eye, 12, 'surface');
+  const surface = camera.quaternion.clone();
+  view.update(1 / 60);
+  assert.deepEqual(camera.position, eye);
+  assert.ok(camera.quaternion.angleTo(surface) < 1e-6);
+});
 
 test('LOD seam retains every central boundary sample at 1x and 15x, with upward winding', () => {
   const field = { width: 3, height: 3, values: new Float32Array([0,.3,.5,.2,.6,.9,.1,.7,1]) };

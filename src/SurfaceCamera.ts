@@ -38,12 +38,18 @@ export class SurfaceCamera {
   private readonly offset = new Vector3();
   constructor(private camera: PerspectiveCamera, private controls: OrbitControls) {}
   configure(eye: Vector3, radius: number, mode = this.mode) {
+    if (this.controls.enableDamping) {
+      // Consume the old view's pending drag before installing the new camera pose.
+      this.controls.enableDamping = false;
+      this.controls.update();
+      this.controls.enableDamping = true;
+    }
     this.transition = undefined;
     this.mode = mode; this.eye.copy(eye); this.radius = radius;
     this.controls.enabled = mode !== 'cinematic' && mode !== 'top';
     this.camera.up.set(0, 1, 0);
     if (mode === 'lander') {
-      this.controls.enableDamping=false;this.controls.enablePan=false;this.controls.enableZoom=true;
+      this.controls.enablePan=false;this.controls.enableZoom=true;
       this.controls.minPolarAngle=.02;this.controls.maxPolarAngle=Math.PI/2-.03;
       this.controls.minDistance=.006;this.controls.maxDistance=.08;
       this.controls.target.copy(this.inspectionTarget);
@@ -51,7 +57,7 @@ export class SurfaceCamera {
       this.camera.fov=45;this.camera.near=.00001;this.camera.far=30000;this.camera.updateProjectionMatrix();this.controls.update();return;
     }
     if (mode === 'globe') {
-      this.controls.enableDamping = false; this.controls.enablePan = false; this.controls.enableZoom = true;
+      this.controls.enablePan = false; this.controls.enableZoom = true;
       this.controls.minPolarAngle = .01; this.controls.maxPolarAngle = Math.PI - .01;
       this.controls.minDistance = MOON_RADIUS_KM + Math.max(150, this.terrainCeiling - this.groundY + 10); this.controls.maxDistance = 14000;
       this.controls.target.set(0, this.groundY - MOON_RADIUS_KM, 0);
@@ -70,7 +76,6 @@ export class SurfaceCamera {
       this.camera.fov = 62; this.camera.near = .001; this.camera.far = 30000;
       this.camera.updateProjectionMatrix(); this.updateCinematic(); return;
     }
-    this.controls.enableDamping = false;
     this.controls.enablePan = mode === 'orbital'; this.controls.enableZoom = mode === 'orbital';
     this.controls.minPolarAngle = mode === 'surface' ? Math.PI / 2 : .05;
     this.controls.maxPolarAngle = mode === 'surface' ? Math.PI - .02 : Math.PI / 2 - .01;
