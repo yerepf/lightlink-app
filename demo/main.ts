@@ -1,6 +1,8 @@
 import { Vector3 } from 'three';
-import { BackendClient, LunarEngine, decodeHeightmap16, createMockSite } from '../src/index';
+import { LunarEngine, createMockSite } from '../src/index';
+import type { LandingPoint } from '../src/LunarEngine';
 import type { SiteData, TimeState } from '../src/data';
+import { coverage } from '../src/missionMetrics';
 import { LiveClock } from '../src/LiveClock';
 import { BackendError, customDateRange, validateCoordinates, type NewSite } from '../src/backend';
 import { announce, el, formatSigned, formatUtc, isMobileViewport, setText, clamp } from './ui/dom';
@@ -17,6 +19,10 @@ import { Switch } from './ui/components/Switch';
 import { CompassWidget } from './ui/CompassWidget';
 import { TimelineWidget } from './ui/TimelineWidget';
 import { headingFromDirection, trueHeading } from './ui/compassMath';
+import { ApiClient, OFFLINE_SITES, TRAINING_SITE, type SiteAsset } from './apiClient';
+import { ExplorerStoryMode } from './ui/ExplorerStoryMode';
+import { SiteComparator } from './ui/SiteComparator';
+import { angleChart, downloadAnalysis } from './ui/MissionAnalysis';
 
 const uiEvents = new AbortController();
 const signal = uiEvents.signal;
@@ -56,13 +62,24 @@ const perfOutput = byId('perf');
 const toast = byId<HTMLElement>('toast');
 const errorText = byId('error');
 const retryButton = byId<HTMLButtonElement>('retry');
+const modeSwitch = byId<HTMLAnchorElement>('mode-switch');
+const storyReset = byId<HTMLButtonElement>('story-reset');
+const compareOpen = byId<HTMLButtonElement>('compare-open');
+const relocateFeedback = byId('relocate-feedback');
 
-const api = new BackendClient();
+const api = new ApiClient();
 const liveClock = new LiveClock();
 const customRanges = new Map<string, ReturnType<typeof customDateRange>>();
 
 let engine: LunarEngine | undefined;
 let siteData: SiteData | undefined;
+let activeAsset: SiteAsset | undefined;
+let landing: LandingPoint | undefined;
+let mode: 'explorer' | 'planner' | undefined;
+let relocating = false;
+let catalogOffline = false;
+let campaignRun = 0;
+let catalogRequest: AbortController | undefined;
 let request: AbortController | undefined;
 let retryAction: () => Promise<void> = initialize;
 let disposed = false;
@@ -183,11 +200,7 @@ const slopeSwitch = new Switch({
   label: 'Riesgo de pendiente',
   description: 'Colorea pendientes suaves, moderadas y altas',
   signal,
-  onChange: checked => {
-    engine?.setSlopeHazardEnabled(checked);
-    slopeLegend.hidden = !checked;
-    mapLegend.hidden = viewMode !== 'top' || checked;
-  },
+  onChange: setSlopeOverlay,
 });
 const skyPathsSwitch = new Switch({
   id: 'sky-paths',
@@ -205,9 +218,9 @@ function legendItem(dotClass: string, label: string): HTMLElement {
 const slopeLegend = el(
   'div',
   { class: 'ui-legend', id: 'slope-legend', hidden: true },
-  legendItem('ui-legend__dot--ok', 'Suave'),
-  legendItem('ui-legend__dot--warning', 'Moderada'),
-  legendItem('ui-legend__dot--danger', 'Alta'),
+  legendItem('ui-legend__dot--ok', '< 10°'),
+  legendItem('ui-legend__dot--warning', '10–15°'),
+  legendItem('ui-legend__dot--danger', '> 15°'),
 );
 const pathsLegend = el(
   'div',
@@ -222,6 +235,10 @@ const mapLegend = el(
 );
 const layersSection = new AccordionSection({ id: 'section-layers', title: 'Capas de análisis', iconName: 'layers', open: false, signal });
 layersSection.append(slopeSwitch.root, slopeLegend, skyPathsSwitch.root, pathsLegend, mapLegend);
+const relocateButton = new Button({ label: 'Activar reubicador', variant: 'secondary', block: true, signal, onClick: () => setRelocating(!relocating) });
+relocateButton.root.id = 'relocate-toggle';
+relocateButton.setPressed(false);
+siteSection.append(relocateButton.root);
 
 const coordinateName = new InputField({
   id: 'coordinate-name',
@@ -375,7 +392,14 @@ const sourceSection = el(
   statusSource,
 );
 
-const statusBody = el('div', { class: 'status-panel__body' }, statusHero, statusGrid, energySection, diagnosticSection, sourceSection);
+const angularChart = el('div', { id: 'angular-chart' });
+const analysis = el('div', { class: 'status-section' }, el('h3', { class: 'status-section__title' }, 'Elevación y horizonte'), angularChart,
+  el('div', { class: 'mission-exports' }, ...(['csv', 'json'] as const).map(format => {
+    const exportButton = el('button', { class: 'flight-button', type: 'button' }, `Exportar ${format.toUpperCase()}`);
+    listen(exportButton, 'click', () => { if (siteData) downloadAnalysis(format, siteData, landing ? `local_dem_${activeAsset?.origin ?? 'unknown'}` : activeAsset?.origin ?? 'unknown', landing); });
+    return exportButton;
+  })));
+const statusBody = el('div', { class: 'status-panel__body' }, statusHero, statusGrid, analysis, energySection, diagnosticSection, sourceSection);
 statusPanel.replaceChildren(statusHead, statusBody);
 
 const compass = new CompassWidget(byId('compass-mount'), signal);
@@ -385,6 +409,8 @@ const timeline = new TimelineWidget(byId('timeline-mount'), {
     stopPlayback();
     updateAt(ms);
     refreshLive();
+    const state = engine?.getState();
+    if (siteData && state?.conditions.co_visibility) story.seek(siteData.ephemeris_timeline, state.timestampMs, engine?.getPowerTelemetry()?.battery_pct);
   },
   onPlay: rate => startPlayback(rate),
   onPause: () => {
@@ -393,6 +419,24 @@ const timeline = new TimelineWidget(byId('timeline-mount'), {
   },
   onLiveToggle: () => toggleLive(),
 });
+
+const story = new ExplorerStoryMode(byId('story-mount'), {
+  enter: enterStoryStep,
+  relocate: () => { setRelocating(!relocating); story.message(''); },
+  compare: openComparator,
+  retry: restartStory,
+  planner: () => { location.hash = '#mision'; },
+});
+
+const comparator = new SiteComparator(appShell, async (id, abort) => {
+  if (id === '@current' && activeAsset && siteData) return { ...activeAsset, site: siteData, origin: landing && activeAsset.origin !== 'mock' ? 'local' : activeAsset.origin };
+  if (id === 'MOCK') return { ...createMockSite(), origin: 'mock' };
+  if (id.startsWith('custom_') && !customRanges.has(id)) customRanges.set(id, customDateRange(currentTime));
+  return api.loadSite(id, Number(lastHeight) as 2 | 5, abort, customRanges.get(id), mode === 'explorer' || catalogOffline);
+}, recommendation => story.compared(recommendation));
+
+listen(compareOpen, 'click', openComparator);
+listen(storyReset, 'click', restartStory);
 
 function setPanelOpen(open: boolean): void {
   controlPanel.dataset.open = String(open);
@@ -422,12 +466,14 @@ setPanelOpen(!isMobileViewport());
 setStatusOpen(false);
 const mobileQuery = window.matchMedia('(max-width: 720px)');
 listen(mobileQuery, 'change', () => {
-  setPanelOpen(!mobileQuery.matches);
+  setPanelOpen(mode !== 'explorer' && !mobileQuery.matches);
   setStatusOpen(false);
 });
 
 function sourceLabel(): string {
-  return lastSelection === 'MOCK' ? 'SIMULADO' : 'Backend';
+  if (activeAsset?.origin === 'mock') return landing ? 'SIMULADO · horizonte local' : 'SIMULADO';
+  if (landing) return `Horizonte local · ${activeAsset?.origin === 'bundled' ? 'copia local' : 'efemérides del sitio base'}`;
+  return activeAsset?.origin === 'bundled' ? 'Copia local' : 'Backend';
 }
 
 function setFormDisabled(disabled: boolean): void {
@@ -435,12 +481,15 @@ function setFormDisabled(disabled: boolean): void {
   heightSelect.setDisabled(disabled);
   for (const field of [coordinateName, coordinateLat, coordinateLon]) field.setDisabled(disabled);
   coordinateSubmit.setDisabled(disabled);
+  relocateButton.setDisabled(disabled || !siteData);
+  compareOpen.disabled = disabled || !siteData;
 }
 
 function setSourceCopy(mock: boolean): void {
-  const text = mock
+  const original = mock
     ? 'Modo simulado: relieve, horizonte y efemérides ficticios para desarrollo sin API.'
     : 'Terreno LOLA y efemérides JPL Horizons del conjunto entregado por el equipo. Visualización geométrica; no certificada para planificación de vuelo.';
+  const text = `${original}${landing ? ' En el punto reubicado se estima el horizonte dentro del DEM y se reutilizan los ángulos del sitio base.' : ''}`;
   setText(dataSource, text);
   setText(statusSource, text);
 }
@@ -506,7 +555,7 @@ function updateBeamStatus(): void {
   setText(
     beamStatus,
     diagnostic.dte === 'outside_visual_terrain'
-      ? 'DTE bloqueado por el backend; sin impacto en el terreno visual. Pulsos e incidencia ilustrativos.'
+      ? 'DTE bloqueado según el horizonte; sin impacto en el terreno visual. Pulsos e incidencia ilustrativos.'
       : diagnostic.dte === 'impact'
         ? `Impacto visual DTE a ${diagnostic.impactDistanceM?.toFixed(1)} m de la antena. Pulsos e incidencia ilustrativos.`
         : 'Pulsos RF e incidencia solar ilustrativos; no representan un presupuesto de enlace o potencia.',
@@ -535,7 +584,7 @@ function updateStatus(state: TimeState): void {
   setText(sampleMetric.value, Number.isFinite(sample) ? shortUtc(sample) : state.sampleTimestampUtc);
   const range = timeline.range;
   setText(coverageMetric.value, `${shortUtc(range.start)} — ${shortUtc(range.end)}`);
-  setText(byId('status-sample'), `Muestra horaria ${Number.isFinite(sample) ? shortUtc(sample) : state.sampleTimestampUtc}`);
+  setText(byId('status-sample'), `${sourceLabel()} · ${Number.isFinite(sample) ? shortUtc(sample) : state.sampleTimestampUtc}`);
 
   setBadgeText('dte-badge', conditions.earth_visible ? 'DTE: activo' : 'DTE: bloqueado', conditions.earth_visible ? 'ok' : 'danger');
 
@@ -580,7 +629,7 @@ function refreshLive(): void {
   const now = Date.now();
   const available = liveClock.available(now);
   const active = !loading && liveClock.sample(now) !== null;
-  timeline.setLiveState({ active, disabled: loading || liveClock.simulated || !available });
+  timeline.setLiveState({ active, disabled: mode === 'explorer' || loading || liveClock.simulated || !available });
 
   if (loading) {
     setBadgeText('live-badge', 'Cargando', 'warning');
@@ -606,7 +655,7 @@ function refreshLive(): void {
 }
 
 function toggleLive(): void {
-  if (loading || liveClock.simulated || !liveClock.available(Date.now())) return;
+  if (mode === 'explorer' || loading || liveClock.simulated || !liveClock.available(Date.now())) return;
   stopPlayback();
   liveClock.followNow = !liveClock.followNow;
   refreshLive();
@@ -678,6 +727,174 @@ function setView(mode: typeof viewMode): void {
   updateCompass();
 }
 
+function setSlopeOverlay(checked: boolean) {
+  slopeSwitch.setChecked(checked);
+  engine?.setSlopeHazardEnabled(checked);
+  slopeLegend.hidden = !checked;
+  mapLegend.hidden = viewMode !== 'top' || checked;
+}
+
+function setRelocating(enabled: boolean) {
+  relocating = enabled && !loading && !!siteData;
+  relocateButton.setPressed(relocating);
+  relocateButton.setLabel(relocating ? 'Salir del reubicador' : 'Activar reubicador');
+  viewport.classList.toggle('is-relocating', relocating);
+  viewport.tabIndex = relocating ? 0 : -1;
+  relocateFeedback.hidden = !relocating;
+  story.relocationActive(relocating);
+  keyboardPoint = undefined;
+  pointerPosition = undefined;
+  delete relocateFeedback.dataset.safe;
+  if (!relocating) { engine?.previewLandingPoint(); return; }
+  setSlopeOverlay(true);
+  if (viewMode !== 'top' && viewMode !== 'orbital') setView('top');
+  if (isMobileViewport()) setPanelOpen(false);
+  const tip = 'Elige un vértice verde · flechas y Enter con teclado';
+  relocateFeedback.textContent = tip;
+  story.cursorReadout(isMobileViewport() ? 'Toca un vértice verde del mapa.' : tip);
+  viewport.focus({ preventScroll: true });
+}
+
+function applyLanding(point: LandingPoint) {
+  if (!engine) return;
+  const start = performance.now();
+  stopPlayback();
+  liveClock.followNow = false;
+  siteData = engine.relocate(point);
+  landing = point;
+  const { start: from, end } = coverage(siteData.ephemeris_timeline);
+  timeline.configure(siteData.ephemeris_timeline, from, end);
+  angularChart.replaceChildren(angleChart(siteData));
+  setSourceCopy(activeAsset?.origin === 'mock');
+  statusSubtitle.textContent = `${lastSelection} · X ${point.x.toFixed(3)} km · Z ${point.z.toFixed(3)} km · ${point.slopeDeg.toFixed(1)}°`;
+  updateAt(currentTime); refreshLive();
+  announce(`Módulo en X ${point.x.toFixed(3)} km, Z ${point.z.toFixed(3)} km. Pendiente ${point.slopeDeg.toFixed(1)}°. Horizonte recalculado en ${Math.round(performance.now() - start)} ms.`);
+}
+
+function hoverLanding(x: number, y: number) {
+  const point = engine?.pickLandingPoint(x, y);
+  engine?.previewLandingPoint(point);
+  const safe = point ? point.slopeDeg < 10 : undefined;
+  const label = point ? `${point.slopeDeg.toFixed(1)}° · ${safe ? 'Zona verde' : 'Zona de riesgo'}` : 'Apunta dentro del mapa de pendientes';
+  relocateFeedback.textContent = label;
+  relocateFeedback.dataset.safe = safe === undefined ? '' : String(safe);
+  story.cursorReadout(label, safe);
+  return point;
+}
+
+function pickLanding(x: number, y: number) {
+  const point = hoverLanding(x, y);
+  if (!point) return;
+  if (story.step === 2 && point.slopeDeg >= 10) { story.message(`Pendiente de ${point.slopeDeg.toFixed(1)}°. Prueba una zona verde de menos de 10°.`); return; }
+  try {
+    applyLanding(point);
+    setRelocating(false);
+    story.landing(point.slopeDeg);
+    if (story.step === 2) byId('story-mount').querySelector<HTMLButtonElement>('button:not([disabled])')?.focus();
+    else relocateButton.root.focus({ preventScroll: true });
+  } catch (error) { showError(error); }
+}
+
+let gesture: { id: number; x: number; y: number; rotation: number[]; moved: boolean } | undefined;
+let keyboardPoint: { x: number; y: number } | undefined;
+let cursorFrame = 0;
+let pointerPosition: { x: number; y: number } | undefined;
+listen(viewport, 'pointerdown', event => {
+  const e = event as PointerEvent;
+  if (!e.isPrimary || e.button !== 0) return;
+  gesture = { id: e.pointerId, x: e.clientX, y: e.clientY, rotation: engine?.camera.quaternion.toArray() ?? [], moved: false };
+});
+listen(viewport, 'pointermove', event => {
+  const e = event as PointerEvent;
+  if (gesture?.id === e.pointerId && Math.hypot(e.clientX - gesture.x, e.clientY - gesture.y) > 5) gesture.moved = true;
+  if (!relocating || e.pointerType === 'touch') return;
+  pointerPosition = { x: e.clientX, y: e.clientY };
+  if (!cursorFrame) cursorFrame = requestAnimationFrame(() => {
+    cursorFrame = 0;
+    if (relocating && pointerPosition) hoverLanding(pointerPosition.x, pointerPosition.y);
+  });
+});
+listen(viewport, 'pointerup', event => {
+  const e = event as PointerEvent;
+  if (!gesture || gesture.id !== e.pointerId) return;
+  const { moved, rotation } = gesture; gesture = undefined;
+  if (moved && engine?.camera.quaternion.toArray().some((v, i) => Math.abs(v - rotation[i]) > .001)) story.rotated();
+  if (!moved && relocating) pickLanding(e.clientX, e.clientY);
+});
+listen(viewport, 'pointercancel', () => { gesture = undefined; });
+listen(viewport, 'pointerleave', () => { pointerPosition = undefined; engine?.previewLandingPoint(); });
+listen(viewport, 'keydown', event => {
+  if (!relocating) return;
+  const e = event as KeyboardEvent;
+  if (e.key === 'Escape') {
+    e.preventDefault(); setRelocating(false);
+    if (story.step === 2) { story.message(''); byId('story-mount').querySelector<HTMLButtonElement>('[data-story-relocate]')?.focus(); }
+    else relocateButton.root.focus();
+    return;
+  }
+  const rect = viewport.getBoundingClientRect();
+  keyboardPoint ??= { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickLanding(keyboardPoint.x, keyboardPoint.y); return; }
+  if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+  e.preventDefault();
+  keyboardPoint.x = clamp(keyboardPoint.x + (e.key === 'ArrowLeft' ? -12 : e.key === 'ArrowRight' ? 12 : 0), rect.left + 1, rect.right - 1);
+  keyboardPoint.y = clamp(keyboardPoint.y + (e.key === 'ArrowUp' ? -12 : e.key === 'ArrowDown' ? 12 : 0), rect.top + 1, rect.bottom - 1);
+  const point = hoverLanding(keyboardPoint.x, keyboardPoint.y);
+  announce(point ? `${point.slopeDeg.toFixed(1)} grados. ${point.slopeDeg < 10 ? 'Zona verde.' : 'Zona de riesgo.'}` : 'Fuera del mapa de pendientes.');
+});
+
+function openComparator() {
+  if (!siteData || loading) return;
+  const current = { id: '@current', label: `${lastSelection === 'MOCK' ? 'Demo simulada' : lastSelection}${landing ? ' · reubicado' : ' · activo'}` };
+  const choices = [current, ...Array.from(siteSelect.select.options)
+    .filter(option => option.value && !option.disabled && (option.value !== 'MOCK' || lastSelection === 'MOCK'))
+    .map(option => ({ id: option.value, label: option.textContent ?? option.value }))];
+  comparator.open(choices, lastSelection === 'Site01' ? 'Site07' : 'Site01');
+}
+
+function enterStoryStep(step: 1 | 2 | 3 | 4 | 5 | 6) {
+  appShell.dataset.storyStep = String(step);
+  if (step === 1) { void prepareStory(); return; }
+  if (step === 2) {
+    setSlopeOverlay(true); setView('top');
+    const hazard = engine?.findHazard();
+    if (!hazard) { story.setFailure(); return; }
+    applyLanding(hazard);
+  }
+  if (step === 3 && siteData) {
+    setSlopeOverlay(false); setView('surface');
+    const { start } = coverage(siteData.ephemeris_timeline);
+    updateAt(start);
+    const any = siteData.ephemeris_timeline.some(frame => frame.conditions.co_visibility);
+    story.setNoWindow(!any);
+    if (!any) story.message('Este vértice no tiene luz y señal simultáneas durante la cobertura. Prueba otra zona verde.');
+  }
+  if (step === 6) queueMicrotask(openComparator);
+}
+
+async function prepareStory() {
+  const run = ++campaignRun;
+  story.setBusy(true);
+  liveClock.followNow = false;
+  setSlopeOverlay(false);
+  setView('orbital');
+  setRelocating(false);
+  heightSelect.setValue('2'); siteSelect.setValue(TRAINING_SITE);
+  const loaded = await loadSelected(undefined, TRAINING_SITE, true);
+  if (mode !== 'explorer' || campaignRun !== run) return;
+  if (loaded) {
+    const frames = siteData!.ephemeris_timeline;
+    const brightest = frames.reduce((best, frame) => frame.sun.elevation_deg > best.sun.elevation_deg ? frame : best);
+    currentTime = Date.parse(brightest.timestamp_utc);
+    updateAt(currentTime); story.setBusy(false);
+  } else story.setFailure();
+}
+
+function restartStory() {
+  if (mode !== 'explorer') return;
+  comparator.close(); story.start();
+}
+
 function submitCoordinates(event: SubmitEvent): void {
   event.preventDefault();
   if (loading) return;
@@ -700,14 +917,15 @@ function submitCoordinates(event: SubmitEvent): void {
 }
 coordinateForm.addEventListener('submit', event => submitCoordinates(event as SubmitEvent), { signal });
 
-async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value): Promise<void> {
+async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value, preferBundled = catalogOffline): Promise<boolean> {
   stopPlayback();
+  setRelocating(false);
   request?.abort();
   request = new AbortController();
   const active = request;
   let selected = selectedId;
   const selectedHeight = heightSelect.value;
-  retryAction = () => loadSelected(coordinates, selected);
+  retryAction = async () => { await loadSelected(coordinates, selected, preferBundled); };
   loading = true;
   refreshLive();
   hideToast();
@@ -717,6 +935,7 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
   timeline.setEnabled(false);
 
   let phase = coordinates ? 'Registrando coordenadas' : 'Cargando sitio';
+  let keepProgress = false;
   const began = Date.now();
   const report = () => {
     loadProgress.textContent = `${phase} · ${Math.floor((Date.now() - began) / 1000)} s. La generación nueva puede tardar hasta 4 minutos.`;
@@ -728,10 +947,19 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
   try {
     if (coordinates) {
       const registered = await api.registerSite(coordinates, active.signal);
-      if (disposed || active.signal.aborted) return;
+      if (disposed || active.signal.aborted) return false;
       selected = registered.site_id;
       const exists = Array.from(siteSelect.select.options).some(option => option.value === selected);
       if (!exists) siteSelect.select.add(new Option(registered.name ?? selected, selected));
+      if (registered.status === 'pending_data') {
+        const option = Array.from(siteSelect.select.options).find(item => item.value === selected)!;
+        option.textContent = `${registered.name ?? selected} (por generar)`; option.disabled = true;
+        const message = `El backend registró ${registered.name ?? selected}. El sitio todavía no tiene terreno ni efemérides para analizar.`;
+        loadProgress.textContent = message;
+        keepProgress = true;
+        announce(message);
+        return true;
+      }
       siteSelect.setValue(selected);
       customRanges.set(selected, customDateRange(liveClock.followNow ? Date.now() : currentTime));
     }
@@ -743,20 +971,19 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
     report();
     if (!engine) throw new Error('El motor 3D no está disponible.');
     const mock = selected === 'MOCK' ? createMockSite() : undefined;
-    const site = mock?.site ?? await api.loadSite(selected, Number(selectedHeight) as 2 | 5, active.signal, customRanges.get(selected));
-
-    phase = 'Descargando heightmap de 16 bits';
-    report();
-    const field = mock?.field ?? await decodeHeightmap16(site.heightmap_url, active.signal);
-    if (disposed || active.signal.aborted) return;
+    const asset: SiteAsset = mock ? { ...mock, origin: 'mock' } : await api.loadSite(selected, Number(selectedHeight) as 2 | 5, active.signal, customRanges.get(selected), preferBundled);
+    const { site, field } = asset;
+    if (disposed || active.signal.aborted) return false;
 
     phase = 'Construyendo terreno 3D';
     report();
     await engine.loadSite(site, field);
     engine.setObserverHeight(Number(selectedHeight));
-    if (disposed || active.signal.aborted) return;
+    if (disposed || active.signal.aborted) return false;
 
     siteData = site;
+    activeAsset = asset;
+    landing = undefined;
     const start = Date.parse(site.ephemeris_timeline[0].timestamp_utc);
     const end = Date.parse(site.ephemeris_timeline.at(-1)!.timestamp_utc);
     liveClock.configure(start, end, !!mock);
@@ -765,6 +992,7 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
     timeline.setTime(currentTime);
     lastSelection = selected;
     lastHeight = selectedHeight;
+    angularChart.replaceChildren(angleChart(site));
 
     const heightNote =
       selectedHeight === '5' && !selected.startsWith('custom_')
@@ -774,17 +1002,18 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
       siteDetail,
       mock
         ? 'SIMULADO: parche de 20 × 20 km. Relieve, horizonte y estados ficticios para probar sin API.'
-        : `${siteSelect.select.selectedOptions[0]?.textContent ?? selected} · PNG 16 bits · ${site.terrain_metadata.patch_size_km.toFixed(3)} km entre centros de píxeles · Observador a ${selectedHeight} m.${heightNote}`,
+        : `${selected} · ${sourceLabel()} · PNG de 16 bits · Parche de ${site.terrain_metadata.patch_size_km.toFixed(3)} km · Observador a ${selectedHeight} m.${heightNote}`,
     );
     setSourceCopy(!!mock);
     setText(
       statusSubtitle,
       mock
         ? 'Modo simulado · Datos ficticios para desarrollo'
-        : `${siteSelect.select.selectedOptions[0]?.textContent ?? selected} · ${site.terrain_metadata.patch_size_km.toFixed(1)} km · Observador a ${selectedHeight} m`,
+        : `${selected} · ${sourceLabel()} · ${site.terrain_metadata.patch_size_km.toFixed(1)} km · Observador a ${selectedHeight} m`,
     );
     heightSelect.select.options[1].textContent = selected.startsWith('custom_') ? '5 m' : '5 m (aproximación)';
     updateAt(currentTime);
+    return true;
   } catch (cause) {
     if (!disposed && request === active) {
       if (lastSelection) {
@@ -800,12 +1029,13 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
         announce('Carga cancelada.');
       }
     }
+    return false;
   } finally {
     clearInterval(waiting);
     if (!disposed && request === active) {
       setFormDisabled(false);
       cancelLoad.root.hidden = true;
-      loadProgress.hidden = !active.signal.aborted;
+      loadProgress.hidden = !active.signal.aborted && !keepProgress;
       loading = false;
       timeline.setEnabled(!!siteData);
       refreshLive();
@@ -813,42 +1043,65 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
   }
 }
 
-async function initialize(): Promise<void> {
-  hideToast();
-  retryAction = initialize;
+const bundledOptions = [
+  ...OFFLINE_SITES.map(site_id => ({ value: site_id, label: site_id })),
+  { value: 'MOCK', label: 'Demo sin API (simulado)' },
+];
+
+async function fetchCatalog(): Promise<void> {
+  catalogRequest?.abort();
+  const active = catalogRequest = new AbortController();
   try {
-    if (!engine) engine = new LunarEngine(viewport, { decodeHeightmap: decodeHeightmap16 });
-    if (!engine.getState()) {
-      siteSelect.setOptions([{ value: 'MOCK', label: 'Demo sin API (simulado)' }], 'MOCK');
-      await loadSelected(undefined, 'MOCK');
+    const { sites, offline } = await api.listSites(active.signal);
+    if (disposed || active.signal.aborted) return;
+    catalogOffline = offline;
+    const previous = siteSelect.value || TRAINING_SITE;
+    const options = sites.map(item => {
+      const label = item.name ?? item.site_id;
+      const pending = item.status === 'pending_data';
+      return { value: item.site_id, label: pending ? `${label} (por generar)` : label, disabled: pending };
+    });
+    for (const option of Array.from(siteSelect.select.options)) if (customRanges.has(option.value) && !options.some(r => r.value === option.value)) {
+      options.push({ value: option.value, label: option.textContent ?? option.value, disabled: option.disabled });
     }
-    request?.abort();
-    request = new AbortController();
-    const catalog = await api.listSites(request.signal);
-    if (disposed) return;
-    const options = [
-      { value: 'MOCK', label: 'Demo sin API (simulado)' },
-      ...catalog.map(item => {
-        const label = item.name ?? item.site_id;
-        const pending = item.status === 'pending_data';
-        return { value: item.site_id, label: pending ? `${label} (por generar)` : label, disabled: pending };
-      }),
-    ];
-    const available = catalog.filter(item => item.status !== 'pending_data');
-    if (!available.length) {
-      siteSelect.setOptions(options, 'MOCK');
-      siteSelect.setValue('MOCK');
-      return;
-    }
-    const preferred = available.find(item => item.site_id === 'Site04')?.site_id ?? available[0].site_id;
-    siteSelect.setOptions(options, preferred);
-    await loadSelected(undefined, preferred);
-  } catch (cause) {
-    if (!disposed) {
-      retryAction = initialize;
-      timeline.setStatus(engine?.getState() ? 'Demo simulada disponible. No se pudo conectar con los datos reales.' : 'No se pudo conectar con los datos.');
-      showError(cause);
-    }
+    siteSelect.setOptions([...options, bundledOptions.at(-1)!], previous);
+  } catch {
+    if (!active.signal.aborted) catalogOffline = true;
+  }
+}
+
+async function initialize(): Promise<void> {
+  if (!engine) engine = new LunarEngine(viewport);
+  if (!siteSelect.value) siteSelect.setOptions(bundledOptions, TRAINING_SITE);
+  void fetchCatalog();
+  if (!await loadSelected(undefined, TRAINING_SITE) && mode === 'planner' && !siteData && !loading && !disposed) {
+    siteSelect.setValue('MOCK'); await loadSelected(undefined, 'MOCK');
+  }
+}
+
+export function setMode(next: 'explorer' | 'planner') {
+  if (mode === next) return;
+  if (!engine) engine = new LunarEngine(viewport);
+  if (!siteSelect.value) siteSelect.setOptions(bundledOptions, TRAINING_SITE);
+  mode = next;
+  appShell.dataset.mode = mode;
+  byId('mission-title').textContent = next === 'explorer' ? 'Lunar Co-Visibility Explorer' : 'Mission Planner';
+  modeSwitch.href = next === 'explorer' ? '#mision' : '#explorador';
+  modeSwitch.textContent = next === 'explorer' ? 'Mission Planner' : 'Explorador';
+  storyReset.hidden = next !== 'explorer';
+  setPanelOpen(next === 'planner' && !isMobileViewport());
+  setStatusOpen(false);
+  setRelocating(false);
+  comparator.close();
+  if (next === 'explorer') {
+    if (!catalogRequest) void fetchCatalog();
+    story.start();
+  } else {
+    story.close();
+    if (!siteData && !request) void initialize();
+    else if (!siteData && !loading) void initialize();
+    else if (siteData && !loading) void fetchCatalog();
+    refreshLive();
   }
 }
 
@@ -866,12 +1119,12 @@ liveTimer = window.setInterval(() => {
   if (!document.hidden) refreshLive();
 }, 1000);
 
-void initialize();
-
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     disposed = true;
     request?.abort();
+    catalogRequest?.abort(); comparator.close();
+    if (cursorFrame) cancelAnimationFrame(cursorFrame);
     window.clearInterval(compassTimer);
     window.clearInterval(perfTimer);
     window.clearInterval(liveTimer);

@@ -32,8 +32,8 @@ export class MissionEffects {
     this.flare.addElement(new LensflareElement(this.opticalRing,95,.35,new T.Color(.12,.18,.22)));
     this.flare.addElement(new LensflareElement(this.halo,38,.65,new T.Color(.15,.12,.08)));
   }
-  projectRing(heightAt:(x:number,z:number)=>number){
-    const p:number[]=[];const point=(a:number,r:number)=>{const x=Math.sin(a)*r,z=-Math.cos(a)*r;p.push(x,heightAt(x,z)+.00002,z);};
+  projectRing(heightAt:(x:number,z:number)=>number, originX=0, originZ=0){
+    const p:number[]=[];const point=(a:number,r:number)=>{const x=originX+Math.sin(a)*r,z=originZ-Math.cos(a)*r;p.push(x,heightAt(x,z)+.00002,z);};
     for(let i=0;i<256;i++){point(i/256*Math.PI*2,.007);point((i+1)/256*Math.PI*2,.007);}
     for(let i=0;i<72;i++){const a=i/72*Math.PI*2;point(a,.007);point(a,i%6===0?.008:.0074);}
     this.ring.geometry.dispose();this.ring.geometry=new T.BufferGeometry();this.ring.geometry.setAttribute('position',new T.Float32BufferAttribute(p,3));this.ring.geometry.computeBoundingSphere();

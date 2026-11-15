@@ -18,7 +18,7 @@
           </svg>
           <h1 id="start-title">Light&amp;Link</h1>
         </div>
-        <a class="start-menu__action" id="start-action" href="#mision">Iniciar</a>
+        <button class="start-menu__action" id="start-action" type="button" aria-haspopup="dialog">Iniciar</button>
         <div class="start-menu__footer">
           <a class="start-menu__exit" href="https://www.lightlink.club/">Salir</a>
           <p class="start-menu__error" id="start-error" role="alert" hidden></p>
@@ -26,6 +26,25 @@
         </div>
       </div>
     </main>
+    <dialog id="role-dialog" class="flight-panel flight-dialog role-dialog" aria-labelledby="role-title">
+      <header class="flight-dialog__head">
+        <h2 id="role-title">Elige tu modo de misión</h2>
+        <button id="role-close" class="flight-button" type="button">Volver</button>
+      </header>
+      <p class="flight-dialog__intro">El mismo polo sur lunar, dos formas de explorarlo.</p>
+      <div class="role-options">
+        <a href="#explorador" class="role-option">
+          <strong>Modo Explorador</strong>
+          <span>Seis misiones guiadas para aprender a aterrizar, encontrar luz y mantener la Tierra a la vista.</span>
+          <span class="role-option__action">Comenzar la historia</span>
+        </a>
+        <a href="#mision" class="role-option">
+          <strong>Mission Planner</strong>
+          <span>Controles libres, telemetría angular, comparación de sitios y exportación de resultados.</span>
+          <span class="role-option__action">Abrir el tablero</span>
+        </a>
+      </div>
+    </dialog>
     <div id="app" class="app-shell" hidden>
       <div id="viewport" class="viewport" aria-label="Vista tridimensional del terreno lunar"></div>
       <dl class="scene-hud" aria-label="Datos de misión sobre la escena">
@@ -51,6 +70,9 @@
         </div>
 
         <div class="app-header__status">
+          <a class="flight-button header-tool" id="mode-switch" href="#explorador">Explorador</a>
+          <button class="flight-button header-tool" id="story-reset" type="button" hidden>Reiniciar</button>
+          <button class="flight-button header-tool" id="compare-open" type="button" aria-haspopup="dialog" disabled>Comparar</button>
           <span class="ui-badge" id="live-badge" role="status">
             <span class="ui-badge__dot" aria-hidden="true"></span>
             <span class="badge-live-text">Cargando</span>
@@ -82,6 +104,8 @@
       <section class="status-panel ui-panel" id="status-panel" data-open="true" aria-label="Estado y resultados"></section>
 
       <div class="compass-mount" id="compass-mount"></div>
+      <div id="story-mount"></div>
+      <output id="relocate-feedback" class="flight-panel relocate-feedback" hidden></output>
 
       <section class="timeline-mount" id="timeline-mount" aria-label="Línea de tiempo lunar"></section>
 

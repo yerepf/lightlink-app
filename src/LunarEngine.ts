@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { directionXYZ, parseSite, Timeline, type TimeState } from './data.js';
+import { directionXYZ, parseSite, Timeline, type SiteData, type TimeState } from './data.js';
+import { analyseRelocation } from './relocation.js';
 import { type HeightField, type HeightDecoder } from './terrain.js';
 import { decodeHeightmap16 } from './png16.js';
 import { createTerrainLOD } from './terrainLOD.js';
@@ -20,6 +21,15 @@ export interface EngineOptions {
   terrainSegments?: number;
   maxPixelRatio?: number;
   decodeHeightmap?: HeightDecoder;
+}
+
+export interface LandingPoint { x: number; z: number; slopeDeg: number }
+
+function terrainRing(inner: number, outer: number) {
+  const ring = new THREE.Mesh(new THREE.RingGeometry(inner, outer, 48).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, depthTest: false, toneMapped: false }));
+  ring.visible = false; ring.renderOrder = 10;
+  return ring;
 }
 
 /** Framework-independent local tangent scene. All scene distances are kilometres. */
@@ -62,7 +72,15 @@ export class LunarEngine {
   private readonly guides = new THREE.Group();
   private readonly view: SurfaceCamera;
   private terrain?: ReturnType<typeof createTerrainLOD>;
-  private centerY = 0;
+  private field?: HeightField;
+  private baseSite?: SiteData;
+  private landing?: LandingPoint;
+  private landingX = 0;
+  private landingZ = 0;
+  private readonly pickRay = new THREE.Raycaster();
+  private readonly cursorRing = terrainRing(.85, 1);
+  private readonly landingRing = terrainRing(.6, .78);
+  private readonly landingOutline = terrainRing(.78, .85);
   private observerHeight = 2;
   private exaggeration = 4;
   private readonly sunRay = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(), 1, SCENE_PALETTE.sun);
@@ -96,7 +114,8 @@ export class LunarEngine {
     this.sunLight.castShadow = true; this.sunLight.shadow.mapSize.set(2048, 2048);
     this.sunLight.shadow.normalBias = 0.08; this.sunLight.shadow.bias = -0.0005;
     this.guides.visible = false; this.guides.add(this.sunRay, this.observerMarker);
-    this.scene.add(this.root, this.sunLight, this.sunLight.target, new THREE.AmbientLight(0xffffff, 0.015), this.guides, this.lander.landerMesh, this.mission.group, this.mission.flare);
+    this.landingOutline.material.color.set('#fff8e6'); this.landingOutline.visible = true; this.landingRing.add(this.landingOutline);
+    this.scene.add(this.root, this.sunLight, this.sunLight.target, new THREE.AmbientLight(0xffffff, 0.015), this.guides, this.lander.landerMesh, this.mission.group, this.mission.flare, this.cursorRing, this.landingRing);
     this.skyScene.add(this.sky.group);
     this.renderer.autoClear = false; this.renderer.info.autoReset = false;
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -127,26 +146,19 @@ export class LunarEngine {
     const next = terrain.group;
     const radius = site.terrain_metadata.patch_size_km * 0.7;
     const spatial = site.spatial;
-    const observer = new THREE.Vector3(0, terrain.centerY + this.observerHeight / 1000, 0);
     const convergence = spatial?.grid_convergence_deg ?? 0;
-    const points = site.horizon_mask.map(h => {
-      const p = new THREE.Vector3(); directionXYZ(h.azimuth_deg + convergence, h.max_elevation_deg, p);
-      return p.multiplyScalar(radius).add(observer);
-    });
-    const horizon = new THREE.Group();
-    if (points.length > 1) horizon.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: SCENE_PALETTE.horizon, depthTest: false, transparent: true, opacity: 0.7 })));
-    for (const child of [...this.guides.children]) if (child.userData.horizon) { this.guides.remove(child); this.release(child); }
-    horizon.userData.horizon = true; this.guides.add(horizon);
     if (this.moon) { this.scene.remove(this.moon.mesh); this.moon.dispose(); }
     this.moon = createMoonBody(terrain.centerY); this.scene.add(this.moon.mesh);
     this.view.setGroundHeight(terrain.centerY);
     this.terrain?.disposeMaterials();
-    this.terrain = terrain; this.centerY = terrain.centerY;
+    this.terrain = terrain;
     this.scene.remove(this.root); this.release(this.root); this.root = next; this.scene.add(next);
-    this.radius = radius; this.observer.copy(observer); this.convergence = convergence;
+    this.radius = radius; this.convergence = convergence;
     this.patchSize = site.terrain_metadata.patch_size_km;
-    this.observerMarker.position.copy(this.observer).add(new THREE.Vector3(0, radius * .015, 0)); this.observerMarker.scale.setScalar(radius * 0.004);
-    this.sunRay.position.copy(this.observer);
+    this.baseSite = site; this.field = field; this.landing = undefined;
+    this.landingX = spatial?.observer_x_km ?? 0; this.landingZ = spatial?.observer_z_km ?? 0;
+    this.cursorRing.visible = this.landingRing.visible = false;
+    this.observerMarker.scale.setScalar(radius * 0.004);
     this.sunRay.setLength(radius, radius * 0.035, radius * 0.018);
     this.sunLight.target.position.copy(this.observer);
     const shadow = this.sunLight.shadow.camera;
@@ -162,6 +174,7 @@ export class LunarEngine {
     this.scienceMarkers = createScienceMarkers(candidates); this.scene.add(this.scienceMarkers.group);
     terrain.setSlopeHazard(this.slopesEnabled);
     this.refreshTerrainBounds();
+    this.drawHorizon(site);
     terrain.setTopographic(this.view.mode === 'top');
     this.mapActive = false;
     this.view.configure(this.observer, radius);
@@ -213,30 +226,110 @@ export class LunarEngine {
     this.queries.rebuild(geometry,this.segments);
     const heightAt=(x:number,z:number)=>meshHeightAt(geometry,this.patchSize,this.segments,x,z);
     this.scienceMarkers?.place(heightAt);
-    this.lander.place(this.centerY,heightAt); this.mission.projectRing(heightAt);
     this.root.updateMatrixWorld(true); this.moon?.mesh.updateMatrixWorld(true);
-    const dx=heightAt(.001,0)-heightAt(-.001,0),dz=heightAt(0,.001)-heightAt(0,-.001);
+    this.updateLandingPose();
+  }
+  private updateLandingPose(): void {
+    const geometry=(this.root.children[0] as THREE.Mesh).geometry;
+    const x = this.landingX, z = this.landingZ;
+    const heightAt = (px: number, pz: number) => meshHeightAt(geometry, this.patchSize, this.segments, px, pz);
+    const localHeight = (px: number, pz: number) => heightAt(x + px, z + pz);
+    const ground = heightAt(x, z);
+    this.observer.set(x, ground + this.observerHeight / 1000, z);
+    this.observerMarker.position.copy(this.observer).add(new THREE.Vector3(0, this.radius * .015, 0));
+    this.sunRay.position.copy(this.observer); this.sunLight.target.position.copy(this.observer);
+    this.landingRing.position.set(x, ground + .003, z);
+    this.lander.place(ground, localHeight, x, z); this.mission.projectRing(heightAt, x, z);
+    const dx=localHeight(.001,0)-localHeight(-.001,0),dz=localHeight(0,.001)-localHeight(0,-.001);
     const downhill=new THREE.Vector3(-dx,0,-dz);
     if(downhill.lengthSq()<1e-12)downhill.set(1,0,1);
     downhill.normalize().multiplyScalar(.012);
     this.lander.panelTarget(this.panelOrigin);
+    downhill.x += x; downhill.z += z;
     downhill.y=Math.max(heightAt(downhill.x,downhill.z)+.003,this.panelOrigin.y+.008);
     this.view.setInspectionPose(downhill,this.panelOrigin);
+  }
+  private drawHorizon(site: SiteData): void {
+    for (const child of [...this.guides.children]) if (child.userData.horizon) { this.guides.remove(child); this.release(child); }
+    const points = site.horizon_mask.map(h => {
+      const point = new THREE.Vector3();
+      directionXYZ(h.azimuth_deg + this.convergence, h.max_elevation_deg, point);
+      return point.multiplyScalar(this.radius).add(this.observer);
+    });
+    if (points.length < 2) return;
+    const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: SCENE_PALETTE.horizon, depthTest: false, transparent: true, opacity: .7 }));
+    line.userData.horizon = true; line.userData.originY = this.observer.y; this.guides.add(line);
+  }
+  private vertexPoint(col: number, row: number): LandingPoint {
+    const geometry = (this.root.children[0] as THREE.Mesh).geometry;
+    const { position, slopeDeg } = geometry.attributes;
+    const index = row * (this.segments + 1) + col;
+    return { x: position.getX(index), z: position.getZ(index), slopeDeg: slopeDeg.getX(index) };
+  }
+  /** Pick the nearest DEM mesh vertex to the hit. Keep one cell of margin for tracing. */
+  pickLandingPoint(clientX: number, clientY: number): LandingPoint | undefined {
+    if (!this.terrain || this.view.isTransitioning || this.view.mode === 'globe') return;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    this.pickRay.setFromCamera(new THREE.Vector2((clientX - rect.left) / rect.width * 2 - 1, 1 - (clientY - rect.top) / rect.height * 2), this.mapActive ? this.mapCamera : this.camera);
+    const hit = this.queries.firstHit(this.pickRay.ray.origin, this.pickRay.ray.direction, [], 500);
+    if (!hit) return;
+    const index = (coordinate: number) => THREE.MathUtils.clamp(Math.round((coordinate / this.patchSize + .5) * this.segments), 1, this.segments - 1);
+    return this.vertexPoint(index(hit.point.x), index(hit.point.z));
+  }
+  previewLandingPoint(point?: LandingPoint): void {
+    this.cursorRing.visible = !!point;
+    if (!point) return;
+    const { x, z, slopeDeg } = point;
+    const geometry = (this.root.children[0] as THREE.Mesh).geometry;
+    this.cursorRing.position.set(x, meshHeightAt(geometry, this.patchSize, this.segments, x, z) + .003, z);
+    this.cursorRing.material.color.set(slopeDeg < 10 ? '#00ff88' : '#ff5353');
+  }
+  findHazard(): LandingPoint | undefined {
+    if (!this.terrain) return;
+    let best: LandingPoint | undefined, distance = Infinity, bestCluster: LandingPoint | undefined, clusterDistance = Infinity;
+    const slopes = (this.root.children[0] as THREE.Mesh).geometry.attributes.slopeDeg;
+    const stride = this.segments + 1;
+    for (let row = 1; row < this.segments; row++) for (let col = 1; col < this.segments; col++) {
+      const index = row * stride + col;
+      if (slopes.getX(index) <= 15) continue;
+      const point = this.vertexPoint(col, row);
+      const d = (point.x - this.landingX) ** 2 + (point.z - this.landingZ) ** 2;
+      if (d < distance) { best = point; distance = d; }
+      if (d < clusterDistance && row > 3 && col > 3 && row < this.segments - 3 && col < this.segments - 3
+        && [-3, 3, -3 * stride, 3 * stride].every(offset => slopes.getX(index + offset) > 15)) {
+        bestCluster = point; clusterDistance = d;
+      }
+    }
+    return bestCluster ?? best;
+  }
+  relocate(point: LandingPoint): SiteData {
+    if (!this.baseSite || !this.field || !this.timeline || ![point.x, point.z, point.slopeDeg].every(Number.isFinite)
+      || Math.max(Math.abs(point.x), Math.abs(point.z)) >= this.patchSize / 2) throw new Error('Punto fuera del DEM');
+    const site = analyseRelocation(this.baseSite, this.field, point.x, point.z, this.observerHeight);
+    const time = this.timeline.state.timestampMs;
+    this.landing = { ...point }; this.landingX = point.x; this.landingZ = point.z;
+    this.landingRing.material.color.set(point.slopeDeg < 10 ? '#22c55e' : '#ff5353');
+    this.updateLandingPose(); this.drawHorizon(site);
+    this.powerModel = createPowerTelemetry(site.ephemeris_timeline);
+    this.timeline = new Timeline(site, true); this.setTime(time);
+    if (this.view.mode !== 'top' && this.view.mode !== 'orbital') this.view.configure(this.observer, this.radius);
+    return site;
   }
   setVisualEffectsEnabled(enabled:boolean):void { this.effectsEnabled=enabled; this.post.enabled=enabled; }
   getPowerTelemetry(): PowerTelemetry | undefined { return this.currentPower ? { ...this.currentPower } : undefined; }
   getScienceCandidateCount(): number { return this.scienceCount; }
-  setSlopeHazardEnabled(enabled: boolean): void { this.slopesEnabled = enabled; this.terrain?.setSlopeHazard(enabled); }
+  setSlopeHazardEnabled(enabled: boolean): void { this.slopesEnabled = enabled; this.terrain?.setSlopeHazard(enabled); this.resizeMap(); }
   setSkyPathsEnabled(enabled: boolean): void { this.skyPathsEnabled = enabled; if (this.skyPaths) this.skyPaths.visible = enabled; }
   setCinematicPaused(paused: boolean): void { this.view.cinematicPaused = paused; }
   setGuidesVisible(visible: boolean): void { this.guides.visible = visible; }
   setObserverHeight(metres: number): void {
     if (!Number.isFinite(metres) || metres <= 0) throw new Error('Invalid observer height');
-    const delta = (metres - this.observerHeight) / 1000; this.observerHeight = metres;
-    this.observer.set(0, this.centerY + metres / 1000, 0);
-    for (const child of this.guides.children) if (child.userData.horizon) child.position.y += delta;
-    this.observerMarker.position.copy(this.observer).add(new THREE.Vector3(0, this.radius * .015, 0)); this.sunRay.position.copy(this.observer);
-    this.sunLight.target.position.copy(this.observer);
+    if (metres === this.observerHeight) return;
+    this.observerHeight = metres;
+    if (!this.terrain || !this.baseSite) return;
+    if (this.landing) { this.relocate(this.landing); return; }
+    this.updateLandingPose(); this.drawHorizon(this.baseSite);
     this.mapActive = false; this.view.configure(this.observer, this.radius);
     if (this.timeline) this.setTime(this.timeline.state.timestampMs);
   }
@@ -244,6 +337,10 @@ export class LunarEngine {
     if (!Number.isFinite(value) || value < 1 || value > 15) throw new Error('Terrain exaggeration must be 1–15');
     this.exaggeration = value; this.terrain?.setExaggeration(value);
     this.refreshTerrainBounds();
+    if (this.baseSite) {
+      for (const child of this.guides.children) if (child.userData.horizon) child.position.y = this.observer.y - Number(child.userData.originY);
+      if (this.view.mode === 'surface' && !this.view.isTransitioning) this.view.configure(this.observer, this.radius);
+    }
     if (this.timeline) this.setTime(this.timeline.state.timestampMs);
     if (this.view.isTransitioning) this.view.transitionTo(this.observer, this.radius, this.view.mode);
     else if (this.view.mode === 'top' || this.view.mode === 'lander') { this.mapActive = false; this.view.configure(this.observer, this.radius); }
@@ -267,8 +364,9 @@ export class LunarEngine {
     this.post.resize(Math.max(width,1),Math.max(height,1),this.renderer.getPixelRatio());
   }
   private resizeMap(): void {
-    this.mapCamera.left = -this.mapExtent * this.camera.aspect; this.mapCamera.right = this.mapExtent * this.camera.aspect;
-    this.mapCamera.top = this.mapExtent; this.mapCamera.bottom = -this.mapExtent; this.mapCamera.updateProjectionMatrix();
+    const extent = this.slopesEnabled ? Math.max(this.mapExtent, this.patchSize * .65 / this.camera.aspect) : this.mapExtent;
+    this.mapCamera.left = -extent * this.camera.aspect; this.mapCamera.right = extent * this.camera.aspect;
+    this.mapCamera.top = extent; this.mapCamera.bottom = -extent; this.mapCamera.updateProjectionMatrix();
   }
   private readonly render = (now: number): void => {
     const realDelta = this.lastFrame ? (now - this.lastFrame) / 1000 : 0;
@@ -300,6 +398,10 @@ export class LunarEngine {
     this.mission.group.visible=this.effectsEnabled&&!!this.timeline;
     this.mission.update(now/1000,top?this.mapCamera:this.camera,this.sunDirection,this.effectsEnabled&&!top&&!!this.timeline);
     const activeCamera = top ? this.mapCamera : this.camera;
+    const scale = top ? (this.mapCamera.top - this.mapCamera.bottom) / this.mapCamera.zoom * .012 : Math.max(.0002, this.camera.position.distanceTo(this.cursorRing.position) * .016);
+    this.cursorRing.scale.setScalar(scale);
+    this.landingRing.visible = !!this.landing && (top || this.view.mode === 'orbital');
+    this.landingRing.scale.setScalar(top ? scale * 1.5 : Math.max(.0002, this.camera.position.distanceTo(this.landingRing.position) * .014));
     this.scienceMarkers?.update(activeCamera);
     if (!top) {
       const near = Math.max(.00001, Math.min(10,this.camera.position.distanceTo(this.observer)*.001));

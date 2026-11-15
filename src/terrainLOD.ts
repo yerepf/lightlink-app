@@ -1,4 +1,4 @@
-import { BufferGeometry, Float32BufferAttribute, Group, Mesh, MeshStandardMaterial, ShaderMaterial } from 'three';
+import { BufferGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, ShaderMaterial } from 'three';
 import { buildTerrain, sampleHeight, type HeightField } from './terrain.js';
 import { regolithTexture, keepBelowBloom } from './proceduralTextures.js';
 import { lunarSag } from './MoonBody.js';
@@ -15,14 +15,13 @@ export function createTerrainLOD(field: HeightField, metadata: SiteData['terrain
   // Normal perturbation only: this does not displace scientific vertex heights.
   material.bumpScale=.15;keepBelowBloom(material);
   addSlopeColors(geometry);
-  const slopeMaterial = material.clone();
-  slopeMaterial.color.set(0xffffff); slopeMaterial.vertexColors = true;
-  slopeMaterial.bumpMap = null; keepBelowBloom(slopeMaterial);
+  // The hazard map stays readable on the night side and preserves category colors.
+  const slopeMaterial = new MeshBasicMaterial({ vertexColors: true, toneMapped: false });
   let slopesEnabled = false, topographicEnabled = false;
   const topoMaterial = new ShaderMaterial({
-    uniforms: { low: { value: metadata.min_elevation_m / 1000 }, high: { value: metadata.max_elevation_m / 1000 } },
+    uniforms: { low: { value: metadata.min_elevation_m / 1000 }, high: { value: metadata.max_elevation_m / 1000 }, intensity: { value: 1 } },
     vertexShader: `attribute float elevation; varying float h; void main(){h=elevation;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-    fragmentShader: `uniform float low; uniform float high; varying float h; void main(){float t=clamp((h-low)/max(high-low,.001),0.,1.);vec3 c=mix(vec3(.13,.24,.31),vec3(.85,.78,.53),t);float contour=abs(fract(h*10.+.5)-.5);float edge=max(fwidth(h*10.),.008);c*=mix(.55,1.,smoothstep(0.,edge*1.5,contour));gl_FragColor=vec4(c,1.);\n #include <colorspace_fragment>\n }`,
+    fragmentShader: `uniform float low; uniform float high; uniform float intensity; varying float h; void main(){float t=clamp((h-low)/max(high-low,.001),0.,1.);vec3 c=mix(vec3(.13,.24,.31),vec3(.85,.78,.53),t);float contour=abs(fract(h*10.+.5)-.5);float edge=max(fwidth(h*10.),.008);c*=intensity*mix(.55,1.,smoothstep(0.,edge*1.5,contour));gl_FragColor=vec4(c,1.);\n #include <colorspace_fragment>\n }`,
   });
   const group = new Group();
   const half = metadata.patch_size_km / 2, angular = 128, radial = 64;
@@ -80,6 +79,7 @@ export function createTerrainLOD(field: HeightField, metadata: SiteData['terrain
   });
   function applyMaterials() {
     const meshes = group.children as Mesh[];
+    topoMaterial.uniforms.intensity.value = slopesEnabled ? .045 : 1;
     meshes[0].material = slopesEnabled ? slopeMaterial : topographicEnabled ? topoMaterial : material;
     meshes[1].material = topographicEnabled ? topoMaterial : material;
   }

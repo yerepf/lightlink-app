@@ -60,9 +60,9 @@ export class BackendError extends Error {
   constructor(readonly status: number, message: string) { super(message); }
 }
 export class BackendClient {
-  constructor(readonly baseUrl = '/api') {}
+  constructor(readonly baseUrl = '/api', private readonly readTimeoutMs = 270000) {}
   private async get(path: string, signal?: AbortSignal, body?: unknown): Promise<unknown> {
-    const timeout = AbortSignal.timeout(270000);
+    const timeout = AbortSignal.timeout(body === undefined && !path.startsWith('/sites/custom_') ? this.readTimeoutMs : 270000);
     const response = await fetch(this.baseUrl.replace(/\/$/, '') + path, {
       signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
       ...(body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),

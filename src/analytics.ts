@@ -11,6 +11,8 @@ export interface PowerTelemetry {
   temp_celsius: number;
   status_label: 'NOMINAL' | 'RESERVA' | 'CRÍTICO' | 'AGOTADA';
 }
+export const SHADOW_DISCHARGE_PER_HOUR = 2.8;
+
 export function batteryIndicator(battery: number) {
   return battery > 40 ? { color: SCENE_PALETTE.ok, hz: .45 }
     : battery >= 15 ? { color: SCENE_PALETTE.warn, hz: 1 }
@@ -21,12 +23,12 @@ function input(frame: Frame) {
   const factor = Math.max(.25, Math.sin(T.MathUtils.degToRad(frame.sun.elevation_deg)));
   return {
     solar: sunny ? 450 * factor : 0, net: sunny ? 450 * factor : -120,
-    rate: sunny ? 4 + 3 * (factor - .25) / .75 : -2.8,
+    rate: sunny ? 4 + 3 * (factor - .25) / .75 : -SHADOW_DISCHARGE_PER_HOUR,
     target: sunny ? 45 : -180, tau: sunny ? 6 : 12,
   };
 }
 /** Illustrative model: initial temperature -20 C, thermal time constants 6/12 h.
- * Backend conditions are held through each source interval; no JSON is modified. */
+ * Visibility conditions are held through each source interval. */
 export function createPowerTelemetry(frames: readonly Frame[], initialTemperature = -20) {
   if (!frames.length) throw new Error('Timeline vacío');
   const times = Float64Array.from(frames, f => Date.parse(f.timestamp_utc));
@@ -62,12 +64,14 @@ export function createPowerTelemetry(frames: readonly Frame[], initialTemperatur
 export function addSlopeColors(geometry: T.BufferGeometry) {
   const real = geometry.clone(); real.computeVertexNormals();
   const normals = real.getAttribute('normal'), values = new Float32Array(normals.count * 3);
+  const slopes = new Float32Array(normals.count);
   const colors = [new T.Color('#22c55e'), new T.Color('#eab308'), new T.Color('#ef4444')];
   for (let i = 0; i < normals.count; i++) {
-    const angle = T.MathUtils.radToDeg(Math.acos(T.MathUtils.clamp(normals.getY(i), -1, 1)));
+    const angle = slopes[i] = T.MathUtils.radToDeg(Math.acos(T.MathUtils.clamp(normals.getY(i), -1, 1)));
     colors[angle < 10 ? 0 : angle <= 15 ? 1 : 2].toArray(values, i * 3);
   }
   geometry.setAttribute('color', new T.BufferAttribute(values, 3)); real.dispose();
+  geometry.setAttribute('slopeDeg', new T.BufferAttribute(slopes, 1));
 }
 
 /** Uses actual timeline directions; does not invent an Earth figure-eight. */

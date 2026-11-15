@@ -48,8 +48,8 @@ export function createLander(panelMap?: T.Texture) {
   return {
     landerMesh,antenna:dishPivot,emitter,panels,
     setBattery(percent:number){batteryPct=T.MathUtils.clamp(percent,0,100);},
-    place(centerY:number,heightAt:(x:number,z:number)=>number){
-      landerMesh.position.set(0,centerY,0);
+    place(centerY:number,heightAt:(x:number,z:number)=>number,x=0,z=0){
+      landerMesh.position.set(x,centerY,z);
       let high=0;for(const {foot,side} of legs){
         const x=Math.cos(side)*.0032,z=Math.sin(side)*.0032,e=.00005;
         const normal=new T.Vector3(-(heightAt(x+e,z)-heightAt(x-e,z))/(2*e),1,-(heightAt(x,z+e)-heightAt(x,z-e))/(2*e)).normalize();

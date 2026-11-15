@@ -1,95 +1,43 @@
-# Interfaz del Lunar Co-Visibility Explorer
+# Interfaz de Lunar Co-Visibility
 
-Rediseño de la capa de presentación del demo. No modifica la lógica del motor científico, el backend ni el contrato de datos. `src/palette.ts` solo centraliza los colores de overlays 3D.
+Desde la portada ilustrada de Light&Link, pulsa **Iniciar** para elegir entre **Modo Explorador** (`#explorador`) y **Mission Planner** (`#mision`). Puedes abrir cualquiera de los modos por su enlace directo o cambiar de uno a otro desde la cabecera. **Reiniciar** vuelve al inicio de las seis misiones. El menú conserva su arte y su astronauta; la animación se detiene si el sistema solicita reducir el movimiento.
 
-## Paleta
+## Modo Explorador
 
-El espacio técnico de planificación usa verde apagado, Inter y superficies planas. `demo/start.ts` carga `tokens.css`, `ui.css`, `mission.css` y `start.css` en ese orden. `DESIGN.md` documenta el sistema vigente y `PRODUCT.md` separa la experiencia actual del futuro modo Explorer, todavía no implementado. `src/palette.ts` conserva los colores científicos de overlays 3D.
+El recorrido carga la copia local de `Site07`, en el polo sur lunar. La historia se integra en la esquina inferior derecha de la escena 3D y propone seis misiones:
 
-| Token | Valor | Uso |
-| --- | --- | --- |
-| `--color-background` | `#101710` | Fondo de app |
-| `--bg-1` / `--bg-2` / `--bg-3` | `#172017` / `#202b20` / `#2b382a` | Paneles y superficies |
-| `--color-primary` | `#bdcaaa` | Acento UI |
-| `--color-text` | `#edf0e7` | Texto principal |
-| `--text-1` / `--text-2` | `#bec8b8` / `#91a08b` | Texto secundario / atenuado |
-| `--hairline` / `--hairline-soft` | `#85977b55` / `#85977b33` | Bordes |
-| `--data-sun` | `#e8a93c` | Sol y avisos |
-| `--data-earth` | `#7fb0c4` | Tierra |
-| `--data-horizon` | `#a893c0` | Horizonte |
-| `--data-ok` | `#a8b99a` | Co-visibilidad y estados OK |
-| `--data-danger` | `#d9694f` | Bloqueos, playhead y errores |
-| `--data-warn` | `#e8a93c` | Batería en reserva |
+1. **¿Dónde estamos?** Orienta la cámara o pulsa **Entendido, ¡empecemos!** para comenzar.
+2. **Alunizaje en peligro.** Activa el reubicador y selecciona un vértice verde (pendiente menor de 10°). El recorrido no avanza con una pendiente de riesgo.
+3. **Luz y señal.** Busca en la línea de tiempo una muestra en la que el Sol y la Tierra sean visibles a la vez. Si el lugar elegido no tiene ninguna en la cobertura disponible, vuelve al mapa y escoge otro punto verde.
+4. **¿Cuánto dura la misión?** Responde si la ventana satisface el requisito de ocho horas seguidas de luz y señal. La autonomía en sombra es una estimación de la batería simulada.
+5. **De dónde salen los datos.** Consulta el papel del altímetro LOLA para el relieve y de JPL Horizons para las efemérides.
+6. **Compara antes de aterrizar.** Completa una comparación válida, cierra el diálogo y recoge la insignia. La insignia reconoce el recorrido educativo y no certifica la planificación de vuelo.
 
-Uso de contraste (la conformidad debe verificarse sobre las superficies efectivas):
+## Mission Planner
 
-- `--text-0` y `--text-1` se usan para texto pequeño sobre `--bg-1`/`--bg-2`.
-- `--text-2` queda para iconos, puntos, ticks y elementos decorativos.
-- `--data-danger-ink` y `--data-horizon-ink` son variantes derivadas para texto pequeño; los tokens puros se reservan para gráficos, bordes y texto grande.
+La escena conserva el HUD con hora UTC, Sol, Tierra/DTE y batería simulada. El panel de controles reúne **Sitio**, **Vista**, **Capas**, **Nuevo punto** e **Información**. En **Detalles** puedes ver los resultados, la cobertura, la energía, el gráfico de elevaciones frente al horizonte y las descargas **CSV** y **JSON**. Las descargas se generan en el navegador para el análisis activo, incluida la reubicación si corresponde. El CSV enumera las ventanas; el JSON incluye además las horas acumuladas, la máscara del horizonte y las muestras de la línea de tiempo.
 
-## Estructura
+- **Reubicar:** en **Sitio**, pulsa **Activar reubicador** y haz clic o toca un vértice del mapa. Con el teclado, mueve el cursor con las flechas, confirma con **Enter** o **Espacio** y cancela con **Escape**. El mapa distingue pendiente verde (< 10°), intermedia (10°–15°) y roja (> 15°). El Planner permite evaluar también posiciones de riesgo.
+- **Comparar:** abre **Comparar** en la cabecera. Selecciona las dos opciones, incluida la posición activa o reubicada. Por defecto ambas se evalúan en el mismo intervalo UTC de cobertura común. Con **Elegir dos fechas UTC**, indica un inicio por opción y una duración común que quepa en ambas coberturas. El diálogo muestra las horas de Sol, Tierra/DTE y co-visibilidad, el porcentaje de terreno con pendiente menor de 10° y la procedencia de cada serie. La recomendación se basa en las horas de co-visibilidad y se omite si solo una de las series es simulada.
+- **Recorrer el tiempo:** arrastra el cabezal o usa las flechas para avanzar por muestras (`Shift` multiplica el salto por diez); **Home** y **End** llevan a los extremos. Hay controles de reproducción, bucle y velocidad, y se puede ampliar con la rueda o con `+` y `-`. El modo en vivo requiere efemérides reales y cobertura para la hora actual.
 
-- `index.html`: menú de inicio y shell de misión.
-- `demo/start.ts`: navegación entre el menú y `#mision`, con carga del motor al entrar y soporte para el historial del navegador.
-- `demo/ui/start.css` y `public/art/`: portada ilustrada en verde y crema, con encuadre para escritorio y móvil. «Salir» abre el sitio de Light&Link. El astronauta flota sobre el fondo y se queda quieto si el usuario prefiere reducir el movimiento.
-- `demo/main.ts`: orquestación entre `LunarEngine`, `BackendClient`, `LiveClock` y los widgets.
-- `demo/ui/tokens.css`: tokens de color, tipografía, espaciado, radios, sombras, movimiento, z-index y breakpoints.
-- `demo/ui/ui.css`: estilos del shell, panel, acordeones, controles, estado, brújula, timeline y responsive.
-- `demo/ui/mission.css`: presentación técnica vigente, HUD sobre escena, Inter local, paneles planos y ajustes responsive.
-- `public/fonts/InterVariable.woff2` y `Inter-LICENSE.txt`: Inter variable servido localmente. Procedencia: repositorio oficial `rsms/inter`, rama `master`, `docs/font-files/InterVariable.woff2` y `LICENSE.txt`; no se ha fijado aquí un commit de origen.
-- `demo/ui/dom.ts`: helpers de DOM, formato UTC y anuncios accesibles.
-- `demo/ui/icons.ts`: iconografía SVG en línea.
-- `demo/ui/components/`: `Panel`, `AccordionSection`, `Select`, `SegmentedControl`, `Slider`, `Switch`, `Button`, `Badge`, `ProgressBar`, `Tooltip`, `InputField`.
-- `demo/ui/compassMath.ts` y `demo/ui/CompassWidget.ts`: brújula HUD.
-- `demo/ui/timelineMath.ts` y `demo/ui/TimelineWidget.ts`: línea de tiempo interactiva.
-- `src/palette.ts`: colores de overlays y guías 3D, sincronizados con los tokens de datos.
-- `tests/ui-math.test.ts`: pruebas de la matemática de brújula y timeline.
+La brújula muestra el norte verdadero corregido por convergencia de cuadrícula en las vistas de superficie y órbita, y fija el norte arriba en vista de mapa. Los paneles nuevos combinan superficies oscuras translúcidas y acentos verdes con las fuentes existentes. El Planner conserva su distribución densa; en pantallas estrechas los controles pasan a la parte inferior, los detalles se abren sobre la escena y el comparador se adapta al ancho disponible. El sistema visual del Planner se documenta en [DESIGN.md](DESIGN.md).
 
-## Composición de la pantalla
+## Datos, ejecución y límites
 
-- Header compacto con marca, sitio activo, estado en vivo y controles de panel; DTE se muestra junto a Tierra en el HUD y el rendimiento no ocupa la cabecera.
-- HUD sin tarjeta sobre la escena: hora UTC, Sol, Tierra/DTE, elevaciones y batería simulada. Se sincroniza con el mismo estado que los detalles.
-- Panel izquierdo con acordeones: Sitio, Vista, Capas, Nuevo punto, Información.
-- Panel de estado a la derecha, cerrado al iniciar y accesible con «Detalles»: co-visibilidad, Sol/Tierra, muestra horaria, cobertura, energía, ciencia y diagnóstico visual.
-- Brújula HUD sobre la esquina inferior izquierda.
-- Timeline de ancho completo con carriles de Sol, Tierra y co-visibilidad.
+Para ejecutar el demo en desarrollo, instala las dependencias con `npm ci` y arranca Vite con `npm run dev:frontend`. `npm run build` genera `dist-demo/`. Para usarlo sin una API remota, sirve esa carpeta desde un servidor HTTP local o estático; abrir `index.html` directamente desde disco no sirve los recursos que la app solicita. La API es opcional: el cliente usa `VITE_API_URL` si se configura al compilar y, si no, usa `/api`. En Vite, `BACKEND_URL` define el destino del proxy de `/api`.
 
-## Brújula
+El paquete incluye datos de `Site01` y `Site07` para alturas de observación de 2 y 5 m, con los mapas de elevación originales de 16 bits y las series del backend en el commit `22489b4d12a34eced448dfede9e72986fdf70908`. Las copias locales conservan la cobertura incluida; no generan efemérides ni amplían fechas. Para regenerarlas desde la raíz, con el repositorio del backend disponible en `backend/`, ejecuta `node --import tsx scripts/prepare-offline.ts`.
 
-- Dial SVG de 112 px con marcas cada 10°, norte verdadero corregido por `spatial.grid_convergence_deg` y flecha fija de rumbo de cámara.
-- Sol y Tierra se sitúan por azimut relativo al rumbo corregido.
-- Cuerpos bajo el horizonte estimado se muestran atenuados y punteados.
-- Tooltip y foco de teclado con azimut, elevación, estado sobre/bajo horizonte y visibilidad de la muestra del backend.
-- En vista de mapa el norte se fija arriba.
+La reubicación toma la pendiente de la malla sin exageración vertical y recalcula un horizonte de 360 rayos sobre el modelo digital de elevación (DEM) original. Usa los ángulos base de JPL Horizons y no intenta representar relieve fuera del parche. El cálculo cuesta `O(360 × muestras por rayo + muestras temporales)`; consultar una elevación en el horizonte regular cuesta `O(1)`. Para medir horas, cada estado booleano se mantiene hasta la próxima muestra, sin interpolarlo ni sumar tiempo después de la última. El porcentaje por pendiente estima el área en la cuadrícula del parche DEM, sin contar su borde exterior.
 
-## Timeline
+DTE representa línea de vista geométrica, sin predecir el rendimiento de un enlace. Este demo no certifica alunizajes ni operaciones de vuelo. No hay autenticación, gestión de equipos ni guardado de escenarios en la revisión examinada. **Nuevo punto** requiere un backend que acepte `POST /sites`; el backend local requiere Redis para el registro y puede devolver `pending_data` mientras el sitio carezca de máscara, efemérides y mapa de elevación específicos.
 
-- Carriles compactos por estado del backend (muestra horaria, sin interpolar booleanos).
-- Transporte: muestra anterior, reproducir/pausar, muestra siguiente y bucle.
-- Velocidades: `1×`, `10×`, `100×`, `1000×`, `10000×` (segundos simulados por segundo real).
-- Arrastrar el playhead busca; arrastrar el fondo desplaza la ventana; rueda o `+`/`-` amplían; doble clic restaura la vista completa.
-- Teclado: `←`/`→` avanzan una muestra (`Shift` ×10), `Home`/`End` van a los extremos y `PageUp`/`PageDown` amplían.
-- Modo en vivo con `LiveClock`: solo disponible con efemérides reales y cobertura para la hora actual.
-- Al llegar al final, la reproducción se detiene o reinicia si el bucle está activo.
+## Archivos y comprobaciones
 
-## Responsive
+- `index.html` y `demo/start.ts`: portada, selector de modos, navegación por fragmento y carga inicial de la escena.
+- `demo/main.ts` y `demo/apiClient.ts`: coordinación de la escena, los controles y la procedencia de los datos.
+- `demo/ui/ExplorerStoryMode.tsx`, `SiteComparator.tsx`, `MissionAnalysis.ts` y `flight.css`: recorrido, comparación, análisis y estilos de las nuevas superficies.
+- `src/relocation.ts` y `src/missionMetrics.ts`: horizonte a partir del DEM y métricas temporales.
 
-- Hasta 720 px: panel de controles inferior, detalles como overlay con cierre, HUD en dos columnas, timeline de 210 px con filas para velocidades y lectura UTC, y brújula reducida.
-- Menos de 1100 px: panel y estado más estrechos.
-- Se respeta `prefers-reduced-motion`.
-
-## Verificación
-
-```powershell
-npx tsc -p tsconfig.demo.json --noEmit
-npm run build
-npm test
-```
-
-No hay un script `lint` configurado en este repositorio. El build incluye `tsc` y la compilación del demo.
-
-La documentación se extrajo del código y de las decisiones aprobadas. El launcher y el detector de Impeccable no estuvieron disponibles por falta de binario/acceso al caché; no se afirma que sus comprobaciones se hayan ejecutado.
-
-Los colores 3D se limitan a overlays y guías: horizonte, rayo solar, enlace DTE, sky paths, marcadores científicos y LED de batería. No se modifican terreno, rampa de pendientes, iluminación, estrellas, Sol, bloom ni lens flare.
-
-El build genera `dist-demo/`; el aviso de tamaño de chunk >500 kB es el mismo del build base y corresponde al bundle de Three.js.
+`npm test` ejecuta las pruebas del repositorio; `npm run build` comprueba TypeScript y compila el demo. No hay un script `lint` configurado.

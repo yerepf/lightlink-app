@@ -78,11 +78,18 @@ export function horizonElevation(mask: SiteData['horizon_mask'], az: number): nu
   return span === 0 ? a.max_elevation_deg : a.max_elevation_deg + (b.max_elevation_deg - a.max_elevation_deg) * ((az - a.azimuth_deg + 360) % 360) / span;
 }
 
+/** Constant-time interpolation for a regular 1° mask beginning at true north. */
+export function localElevation(mask: SiteData['horizon_mask'], azimuth: number): number {
+  const az = ((azimuth % 360) + 360) % 360;
+  const i = Math.floor(az), t = az - i;
+  return (1 - t) * mask[i].max_elevation_deg + t * mask[(i + 1) % 360].max_elevation_deg;
+}
+
 export interface TimeState {
   timestampMs: number;
   sun: Direction;
   earth: Direction;
-  /** Backend sample held until the next sample; never interpolated booleans. */
+  /** Authoritative sample for the current model, held until the next sample. */
   conditions: Conditions;
   sampleTimestampUtc: string;
   horizonEstimate: Conditions;
@@ -91,7 +98,7 @@ export interface TimeState {
 export class Timeline {
   readonly times: Float64Array;
   readonly state: TimeState;
-  constructor(private readonly site: SiteData) {
+  constructor(private readonly site: SiteData, private readonly regularLocalMask = false) {
     this.times = Float64Array.from(site.ephemeris_timeline, f => Date.parse(f.timestamp_utc));
     this.state = { timestampMs: 0, sun: { azimuth_deg: 0, elevation_deg: 0 }, earth: { azimuth_deg: 0, elevation_deg: 0 }, conditions: site.ephemeris_timeline[0].conditions, sampleTimestampUtc: '', horizonEstimate: { sun_visible: false, earth_visible: false, co_visibility: false } };
   }
@@ -110,8 +117,9 @@ export class Timeline {
     state.timestampMs = time;
     state.conditions = a.conditions;
     state.sampleTimestampUtc = a.timestamp_utc;
-    state.horizonEstimate.sun_visible = state.sun.elevation_deg > horizonElevation(this.site.horizon_mask, state.sun.azimuth_deg);
-    state.horizonEstimate.earth_visible = state.earth.elevation_deg > horizonElevation(this.site.horizon_mask, state.earth.azimuth_deg);
+    const elevation = this.regularLocalMask ? localElevation : horizonElevation;
+    state.horizonEstimate.sun_visible = state.sun.elevation_deg > elevation(this.site.horizon_mask, state.sun.azimuth_deg);
+    state.horizonEstimate.earth_visible = state.earth.elevation_deg > elevation(this.site.horizon_mask, state.earth.azimuth_deg);
     state.horizonEstimate.co_visibility = state.horizonEstimate.sun_visible && state.horizonEstimate.earth_visible;
     return state;
   }

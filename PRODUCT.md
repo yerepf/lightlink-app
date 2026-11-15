@@ -1,18 +1,18 @@
 # Lunar Co-Visibility — producto
 
-La experiencia actual es un espacio técnico para planificar y revisar condiciones de una misión lunar: explorar el terreno, consultar visibilidad del Sol y enlace directo con la Tierra, recorrer muestras temporales y revisar energía simulada.
+Lunar Co-Visibility usa terreno del polo sur lunar y efemérides del Sol y la Tierra para explorar tres preguntas: dónde posar un módulo, cuánto tiempo tendrá luz y cuándo habrá línea de vista directa a la Tierra (DTE). La portada de Light&Link da acceso a dos modos que comparten la escena 3D y la línea de tiempo.
 
-La escena conserva el protagonismo. La hora UTC, el Sol, la Tierra/DTE y la batería simulada se consultan directamente sobre ella. Los controles de sitio, vista, capas y puntos permanecen disponibles; resultados, cobertura, energía y diagnósticos se abren bajo demanda con «Detalles».
+**Modo Explorador** enseña a interpretar esos datos mediante seis misiones guiadas en Site07. El recorrido parte de un alunizaje de riesgo y pide elegir un terreno más llano, encontrar una ventana de luz y señal, comprobar cuánto dura, reconocer las fuentes y comparar alternativas. La insignia final reconoce el aprendizaje.
 
-La presentación debe ser sobria y científica: Inter, verdes apagados, líneas finas y formas casi rectangulares. La claridad de estados, unidades y procedencia de los datos pesa más que la decoración.
+**Mission Planner** permite explorar los sitios con todos los controles, evaluar una posición reubicada, inspeccionar resultados y comparar sitios o fechas en ventanas de igual duración. La hora UTC, el Sol, la Tierra/DTE y la batería simulada se consultan sobre la escena. Los análisis, la cobertura, los diagnósticos y las descargas se abren en **Detalles**.
 
-Un modo Explorer separado es una dirección futura aprobada, no una función implementada ni un selector disponible. No presentar el espacio técnico actual como una experiencia divulgativa terminada.
+La presentación del Planner mantiene el carácter de un instrumento científico: Inter, verdes apagados, líneas finas y paneles compactos. El modo guiado conserva la escena como centro de la experiencia y presenta instrucciones cerca del terreno sobre el que se actúa. La claridad de estados, unidades y procedencia tiene prioridad sobre la decoración.
 
-## Contratos que se conservan
+## Contratos del producto
 
-- Los estados de visibilidad corresponden a muestras del backend; no interpolar booleanos para aparentar mayor precisión.
-- Diferenciar batería simulada, demo y datos reales. No convertir un valor ausente en una medición válida.
-- Conservar el motor científico, la física, los controles reales y sus contratos de datos.
-- El modo en vivo depende de efemérides reales y cobertura para la hora actual.
+- Mostrar la procedencia de los datos y distinguir las series de la API, las copias incluidas, los cálculos de horizonte local y la demo simulada. Un valor ausente no es una medición.
+- Las duraciones se estiman a partir de las muestras de visibilidad, sin interpolar estados booleanos. El modo en vivo depende de efemérides reales y cobertura para la hora actual.
+- El análisis de una reubicación se limita al parche de elevación disponible. La visibilidad DTE es geométrica; la batería es simulada. El resultado no certifica una misión real.
+- El registro de un punto mediante una API compatible no implica que estén listos sus datos. La descarga del análisis activo se genera en el navegador; el demo no ofrece cuentas, gestión de equipos ni persistencia de escenarios.
 
-La documentación visual normativa está en `DESIGN.md`; la estructura de implementación y las comprobaciones están en `README_UI.md`.
+[README_UI.md](README_UI.md) explica cómo usar y ejecutar ambos modos. [DESIGN.md](DESIGN.md) conserva el sistema visual del Planner.

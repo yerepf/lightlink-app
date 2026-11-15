@@ -3,7 +3,8 @@
   "compilerOptions": {
     "rootDir": ".",
     "noEmit": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "jsx": "preserve"
   },
-  "include": ["src/**/*.ts", "demo/**/*.ts", "vite.config.ts"]
+  "include": ["src/**/*.ts", "demo/**/*.ts", "demo/**/*.tsx", "vite.config.ts"]
 }
