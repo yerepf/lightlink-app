@@ -154,6 +154,7 @@
 .story__audio[aria-pressed="true"], .story__audio:hover:not(:disabled) { color: var(--flight-accent); }
 .story__audio:focus-visible { outline: 2px solid var(--flight-accent); outline-offset: -2px; }
 .story__audio:disabled { opacity: .55; cursor: default; }
+.story__ai-credit { display: inline-block; margin-bottom: 8px; color: var(--flight-copy); font-size: .73rem; }
 .story h2:focus { outline: none; }
 .story__progress { margin: 0 0 4px; color: var(--flight-accent); font-size: .73rem; font-weight: 650; }
 .story__copy, .story__feedback { font-size: clamp(.84rem, 1.4vw, 1rem); line-height: 1.5; margin: 9px 0 0; }

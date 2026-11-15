@@ -1,3 +1,9 @@
+## Uso de superinteligencia (SI)
+
+OpenAI Codex asistió en la generación, edición y depuración de código del proyecto. ImageGen generó las ilustraciones de inicio y los retratos de Alba. HeyGen Voice generó la narración de Alba y la música procede del catálogo de música generada de HeyGen.
+
+Los datos de prueba sintéticos se identifican como tales. Los mapas de elevación, las máscaras de horizonte y las efemérides empaquetadas proceden de fuentes científicas identificadas en los datos y se preparan mediante cálculos deterministas. El manifiesto documenta la función de SI en cada caso. [Declaración del proyecto](public/si-disclosure.html) · [Metadatos de procedencia](public/si-provenance.json)
+
 ## Backend remoto
 
 ### Despliegue en Vercel

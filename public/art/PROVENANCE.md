@@ -1,4 +1,4 @@
-The start screen backdrop and the astronaut were made with built-in ImageGen. The WebP astronaut preserves alpha. The user's attached Light&Link reference informed the first illustration, from which both shipped assets were derived.
+The start screen backdrop and the astronaut were made with built-in ImageGen and carry a visible “SI-generated” watermark. The WebP astronaut preserves alpha. The user's attached Light&Link reference informed the first illustration, from which both shipped assets were derived.
 
 `start-logo.mp4` comes from the user-supplied `Light & link animacion logo.mp4`. The app version crops the surrounding black space and trims the initial black frames for inline playback on the start screen. `start-logo-still.webp` is the final frame with the black background removed into an alpha channel.
 
@@ -12,4 +12,4 @@ Extract the single astronaut from the supplied source illustration into a standa
 
 ## Explorer guide portraits
 
-Alba’s welcome and salute portraits use the user-supplied `IMG_6452.PNG` as the likeness reference. ImageGen used the previous Explorer dialogue portrait for the olive suit, brass fittings, chest pack and engraved treatment. The welcome portrait served as the costume and framing reference for the salute. Both waist-up portraits preserve the generated alpha channel.
+Alba’s welcome and salute portraits use the user-supplied `IMG_6452.PNG` as the likeness reference. ImageGen used the previous Explorer dialogue portrait for the olive suit, brass fittings, chest pack and engraved treatment. The welcome portrait served as the costume and framing reference for the salute. Both waist-up portraits preserve the generated alpha channel and carry a visible “SI-generated” watermark.

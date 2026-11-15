@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "siProvenance": {
+    "code": "SI-assisted development with OpenAI Codex",
+    "details": "public/si-provenance.json"
+  },
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:frontend": "vite",

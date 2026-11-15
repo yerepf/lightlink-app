@@ -57,6 +57,7 @@ export class ExplorerStoryMode {
       el('div', { class: 'flight-panel story__panel' },
         el('header', { class: 'story__head' }, el('span', { class: 'story__speaker' }, 'Alba'),
           el('div', { class: 'story__audio-controls' }, this.sound, this.replay)),
+        el('a', { class: 'story__ai-credit', href: `${import.meta.env.BASE_URL}si-disclosure.html`, target: '_blank', rel: 'noopener' }, 'SI-generated voice and artwork'),
         this.label, this.title, this.copy, this.content, this.feedback, this.cursor, this.actions, this.voiceStatus));
     this.sound.addEventListener('click', () => {
       this.audio.setEnabled(!this.audio.enabled);

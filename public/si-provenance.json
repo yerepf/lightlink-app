@@ -1,0 +1,59 @@
+{
+  "project": "Light&Link",
+  "images": {
+    "siGenerated": true,
+    "tool": "OpenAI ImageGen",
+    "use": "Generated the opening illustration, floating astronaut and Alba portraits. Each shipped image carries a visible SI-generated watermark.",
+    "files": ["art/start-sky.webp", "art/start-astronaut.webp", "art/alba-welcome.webp", "art/alba-salute.webp"]
+  },
+  "video": {
+    "files": ["art/start-logo.mp4", "art/start-logo-still.webp"],
+    "use": "Team-supplied Light&Link logo animation. The app crops and trims the animation and uses its final frame as a still.",
+    "originalGenerationMethod": "Undocumented"
+  },
+  "audio": {
+    "generated": [
+      {
+        "tool": "HeyGen Voice",
+        "use": "Synthesis of Alba's English narration with Cassidy – Expressive & Imaginative.",
+        "repositoryDirectory": "demo/audio",
+        "files": ["alba-0.mp3", "alba-1.mp3", "alba-2.mp3", "alba-3.mp3", "alba-4.mp3", "alba-5.mp3", "alba-6.mp3", "alba-7.mp3"]
+      },
+      {
+        "tool": "HeyGen Music",
+        "use": "Background score selected from the generated music catalog.",
+        "files": ["audio/lunar-orbit.mp3"]
+      }
+    ],
+    "catalogEffects": {
+      "source": "HeyGen sound-effects catalog",
+      "files": ["audio/transmission.mp3", "audio/confirmed.mp3"],
+      "generationMethod": "Undocumented"
+    },
+    "repositoryDemo": {
+      "file": "Voz Off Demo.mp3",
+      "use": "Repository asset outside the files served by the web app.",
+      "generationMethod": "Undocumented"
+    }
+  },
+  "code": {
+    "siAssisted": true,
+    "tool": "OpenAI Codex",
+    "use": "SI-assisted generation, editing, debugging and verification of project code, including the Explorer onboarding, narration playback and submission disclosures.",
+    "metadata": "package.json#siProvenance"
+  },
+  "data": {
+    "syntheticDemo": {
+      "siAssisted": true,
+      "generationMethod": "Deterministic formulas",
+      "source": "src/mock.ts",
+      "use": "Synthetic terrain and visibility test values computed by formulas in SI-assisted code."
+    },
+    "scientificSiteData": {
+      "generationMethod": "Deterministic processing of attributed scientific inputs",
+      "files": ["offline/Site01-2.json", "offline/Site01-5.json", "offline/Site07-2.json", "offline/Site07-5.json"],
+      "sources": ["Lunar Orbiter Laser Altimeter (LOLA) elevation data", "JPL Horizons ephemerides"],
+      "use": "Scientific inputs are attributed in the site files. Deterministic processing prepares samples, terrain and visibility for the app."
+    }
+  }
+}
