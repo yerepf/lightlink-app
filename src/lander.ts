@@ -1,6 +1,7 @@
 import * as T from 'three';
 import {keepBelowBloom,panelTexture} from './proceduralTextures.js';
 import type {Conditions} from './data.js';
+import { batteryIndicator } from './analytics.js';
 const UP=new T.Vector3(0,1,0),FORWARD=new T.Vector3(0,0,1);
 export function createLander(panelMap?: T.Texture) {
   const landerMesh=new T.Group();landerMesh.name='landerMesh';
@@ -41,9 +42,11 @@ export function createLander(panelMap?: T.Texture) {
     foot.name='landingFoot';
     const strut=add(new T.CylinderGeometry(.0001,.00013,1,8),white,new T.Vector3(),landerMesh);legs.push({foot,strut,side:a});
   }
+  let batteryPct=85;
   let powered=false;const target=new T.Vector3();const start=new T.Vector3(),delta=new T.Vector3();
   return {
     landerMesh,antenna:dishPivot,emitter,panels,
+    setBattery(percent:number){batteryPct=T.MathUtils.clamp(percent,0,100);},
     place(centerY:number,heightAt:(x:number,z:number)=>number){
       landerMesh.position.set(0,centerY,0);
       let high=0;for(const {foot,side} of legs){
@@ -59,7 +62,9 @@ export function createLander(panelMap?: T.Texture) {
     track(earth:T.Vector3){dishPivot.quaternion.setFromUnitVectors(FORWARD,earth);landerMesh.updateMatrixWorld(true);},
     update(seconds:number,earth:T.Vector3){
       dishPivot.quaternion.setFromUnitVectors(FORWARD,earth);
-      beaconMaterial.color.setHex(0xff632b).multiplyScalar(1.8+1.2*(.5+.5*Math.sin(seconds*2.2)));
+      const indicator=batteryIndicator(batteryPct);
+      const wave=.5+.5*Math.sin(seconds*Math.PI*2*indicator.hz);
+      beaconMaterial.color.setHex(indicator.color).multiplyScalar(.8+3*(batteryPct<15?wave**4:wave));
       cells.emissiveIntensity=powered?.12+.04*Math.sin(seconds*.7):0;
     },
     origin(out:T.Vector3){return emitter.getWorldPosition(out);},

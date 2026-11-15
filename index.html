@@ -25,7 +25,8 @@
       .controls label { min-width: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
       .controls { align-items: center; }
       .controls .guides { flex-direction: row; align-items: center; max-width: 30ch; }
-      #guides, #effects { width: 20px; height: 20px; flex-shrink: 0; }
+      #guides, #effects, #slope-hazard, #sky-paths { width: 20px; height: 20px; flex-shrink: 0; }
+      .energy-hud { margin: 12px 0; } .energy-hud progress { width: min(260px, 100%); vertical-align: middle; }
       .controls select, .controls input { max-width: 100%; }
       small { color: #c2ccdb; }
       #viewport { background: #000; touch-action: none; }
@@ -58,7 +59,19 @@
           <label for="exaggeration">Exageración del terreno · <output id="exaggeration-value">4×</output><input id="exaggeration" type="range" min="1" max="15" step="0.5" value="4" /><small>1× real — 15× exagerado</small></label>
           <label class="guides"><input id="effects" type="checkbox" checked /> Bloom y efectos de misi&#243;n</label>
           <label class="guides"><input id="guides" type="checkbox" /> Mostrar guías técnicas (Horizonte y Vectores)</label>
+          <label class="guides"><input id="slope-hazard" type="checkbox" /> Mostrar Mapa de Pendientes</label>
+          <label class="guides"><input id="sky-paths" type="checkbox" /> Mostrar Trayectorias Orbitales</label>
         </div>
+        <p id="slope-legend" hidden>Pendiente DEM a 1×: verde &lt; 10° · ámbar 10–15° · rojo &gt; 15°. Clasificación ilustrativa, no certificación de alunizaje. El anillo procedural no se clasifica.</p>
+        <p id="paths-legend" hidden>Dorado discontinuo: Sol · Cian: Tierra. Recorridos del intervalo cargado; la forma depende de las efemérides.</p>
+        <div class="energy-hud">
+          <label>Batería simulada <progress id="battery-bar" max="100" value="85"></progress> <output id="battery-value">85%</output></label>
+          <details><summary>Telemetría energética y térmica</summary>
+            <p><output id="power-telemetry">Esperando datos…</output></p>
+            <p>Modelo simplificado: batería inicial 85%, temperatura inicial −20 °C. Carga 4–7%/h con Sol; descarga 2.8%/h en sombra. Temperatura superficial estimada, no temperatura interna. No es telemetría medida.</p>
+          </details>
+        </div>
+        <p id="science-status">Buscando depresiones candidatas…</p>
         <p>Luna completa con textura de baja resoluci&#243;n. Detalle LOLA en el sitio y transici&#243;n procedural hasta 120 km. La c&#225;mara est&#225; centrada en el parche; las gu&#237;as y el enlace corresponden al punto original del backend. La exageración es visual; el horizonte y las condiciones del backend conservan su escala científica.</p>
         <p><output id="dte" aria-live="polite">DTE: pendiente</output> &middot; <output id="performance" aria-label="Rendimiento">Midiendo FPS...</output></p>
         <p id="map-legend" hidden>Mapa de elevaci&#243;n: azul oscuro = cotas bajas, arena = cotas altas. Curvas cada 100 m. Arrastra para desplazar; rueda para zoom. Norte de cuadr&#237;cula arriba.</p>

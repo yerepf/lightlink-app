@@ -47,6 +47,16 @@ Validation: production build and 18 passing tests, including globe radius/windin
 
 ## Procedural mission visuals (2026-11-14)
 
+### Analytical overlays and illustrative power model
+
+`src/analytics.ts` precomputes parallel `power_telemetry` at the source timestamps, starting at 85% battery and −20 °C. Sampling integrates only the remainder of the selected interval, using its authoritative sun condition and actual elapsed hours; scrubbing order never changes results. Sun input is `450 * max(.25, sin(elevation))` W, with charging scaled from 4 to 7 percentage points/hour. Shadow uses −120 W and −2.8 points/hour. Temperatures approach +45/−180 °C exponentially with illustrative 6/12-hour constants. Percentage rates are prescribed independently of watts: this is not a battery-capacity/energy-balance model. The HUD includes a simple battery bar and expandable technical telemetry; `getPowerTelemetry()` exposes the same current values. Beacon color and pulse rate follow the 40%/15% thresholds, while DTE and solar-panel conditions stay authoritative.
+
+Slope vertex colors are computed once from the central DEM at 1x and retained through 1–15x exaggeration. Green <10°, amber 10–15°, red >15°; these categories do not certify landing safety. The overlay overrides central topographic shading while enabled; disabling restores the active map/lunar material. Procedural outer terrain is deliberately unclassified. Sky paths use every supplied sample, the same true-north/grid convergence transform and sky pass as celestial bodies: dashed gold Sun, cyan Earth. Earth is not forced into a figure-eight when the selected interval does not describe one.
+
+Science markers select up to three spatially separated depressions within the bottom elevation decile, requiring a surrounding local ring at least 2 m higher. Flat or unsuitable terrain can yield fewer or no markers. Labels explicitly identify unconfirmed topographic candidates: low elevation alone establishes neither permanent shadow nor water ice. Marker ground positions follow visual exaggeration; scientific data remains unchanged. Site04 yielded one candidate in the checked dataset. All new geometry/material/texture resources are released when switching sites or disposing the engine.
+
+Validation: production build and 34 tests pass, including reversible telemetry, uneven source intervals, thermal/battery limits, slope invariance at 15x, correct sky orientation and rejection of flat/sloping PSR candidates. Browser checked real Site04, manual endpoints, live return, slope and path toggles, with no console errors and 60 FPS observed after warmup. Capture: `.impeccable/review/analytics.jpg`.
+
 ### Coordinate-based sites
 
 Open **Explorar por coordenadas lunares**, enter a name, latitude (−90..90) and east longitude (−180..360), then **Generar y explorar**. The frontend registers with `POST /sites` and requests `GET /sites/:id` with observer height and a 48-hour window around the selected time (current time in live mode), aligned to whole UTC hours. Existing pending sites can also be selected to trigger generation. Changing observer height requests the corresponding product. Generation requires the backend's local DEM coverage, Python, Horizons access and Redis; this does not upload an arbitrary local heightmap or supply global high-resolution coverage.

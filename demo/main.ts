@@ -34,6 +34,7 @@ function update(at = start + Number(time.value) * 3600000) {
   if (!engine) return;
   const state = engine.setTime(at);
   currentTime = state.timestampMs;
+  updatePowerHUD();
   timestamp.value = new Date(currentTime).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC');
   updateVisualDiagnostic();
   const c = state.conditions;
@@ -211,12 +212,33 @@ const view = document.querySelector<HTMLSelectElement>('#view')!;
 const exaggeration = document.querySelector<HTMLInputElement>('#exaggeration')!;
 const guides = document.querySelector<HTMLInputElement>('#guides')!;
 const uiEvents = new AbortController();
+document.querySelector<HTMLInputElement>('#slope-hazard')!.addEventListener('change', event => {
+  const enabled = (event.target as HTMLInputElement).checked;
+  engine?.setSlopeHazardEnabled(enabled);
+  document.querySelector<HTMLElement>('#slope-legend')!.hidden = !enabled;
+  document.querySelector<HTMLElement>('#map-legend')!.hidden = view.value !== 'top' || enabled;
+}, { signal: uiEvents.signal });
+document.querySelector<HTMLInputElement>('#sky-paths')!.addEventListener('change', event => {
+  const enabled = (event.target as HTMLInputElement).checked;
+  engine?.setSkyPathsEnabled(enabled);
+  document.querySelector<HTMLElement>('#paths-legend')!.hidden = !enabled;
+}, { signal: uiEvents.signal });
+function updatePowerHUD() {
+  const telemetry = engine?.getPowerTelemetry(); if (!telemetry) return;
+  const bar = document.querySelector<HTMLProgressElement>('#battery-bar')!;
+  bar.value = telemetry.battery_pct;
+  bar.style.accentColor = telemetry.battery_pct > 40 ? '#22c55e' : telemetry.battery_pct >= 15 ? '#eab308' : '#ef4444';
+  document.querySelector<HTMLOutputElement>('#battery-value')!.value = `${telemetry.battery_pct.toFixed(1)}%`;
+  document.querySelector<HTMLOutputElement>('#power-telemetry')!.value = `${telemetry.status_label} · ${telemetry.battery_pct.toFixed(1)}% · ${telemetry.net_watts.toFixed(0)} W netos · ${telemetry.temp_celsius.toFixed(1)} °C · Solar ${telemetry.solar_watts.toFixed(0)} W`;
+  const count = engine!.getScienceCandidateCount();
+  document.querySelector<HTMLElement>('#science-status')!.textContent = `${count} ${count === 1 ? 'candidato topográfico' : 'candidatos topográficos'} PSR. La profundidad no confirma sombra permanente ni hielo de agua.`;
+}
 const cinematicPause = document.querySelector<HTMLButtonElement>('#cinematic-pause')!;
 let cinematicPaused = false;
 view.addEventListener('change', () => {
   engine?.setViewMode(view.value as 'surface' | 'orbital' | 'cinematic' | 'top' | 'globe' | 'lander');
   cinematicPause.hidden = view.value !== 'cinematic';
-  document.querySelector<HTMLElement>('#map-legend')!.hidden = view.value !== 'top';
+  document.querySelector<HTMLElement>('#map-legend')!.hidden = view.value !== 'top' || document.querySelector<HTMLInputElement>('#slope-hazard')!.checked;
 }, { signal: uiEvents.signal });
 cinematicPause.addEventListener('click', () => {
   cinematicPaused = !cinematicPaused;
@@ -243,6 +265,7 @@ function updateVisualDiagnostic() {
 }
 const performanceTimer = window.setInterval(() => {
   if (!engine) return;
+  updatePowerHUD();
   updateVisualDiagnostic();
   document.querySelector<HTMLOutputElement>('#performance')!.value = `${engine.stats.fps.toFixed(0)} FPS | ${engine.stats.frameMs.toFixed(1)} ms | ${engine.stats.drawCalls} draws`;
 }, 1000);

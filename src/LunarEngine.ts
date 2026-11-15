@@ -12,6 +12,7 @@ import { MissionEffects } from './MissionEffects.js';
 import { LunarPostProcessing } from './LunarPostProcessing.js';
 import { createLander } from './lander.js';
 import { CelestialSky } from './CelestialSky.js';
+import { createPowerTelemetry, createSkyPaths, disposeSkyPaths, findScienceCandidates, createScienceMarkers, type PowerTelemetry } from './analytics.js';
 
 export interface EngineOptions {
   canvas?: HTMLCanvasElement;
@@ -38,6 +39,13 @@ export class LunarEngine {
   private readonly queries = new TerrainQueries();
   private readonly post: LunarPostProcessing;
   private effectsEnabled = true;
+  private powerModel?: ReturnType<typeof createPowerTelemetry>;
+  private currentPower?: PowerTelemetry;
+  private skyPaths?: THREE.Group;
+  private scienceMarkers?: ReturnType<typeof createScienceMarkers>;
+  private slopesEnabled = false;
+  private skyPathsEnabled = false;
+  private scienceCount = 0;
   private readonly antennaOrigin = new THREE.Vector3();
   private readonly panelOrigin = new THREE.Vector3();
   private readonly earthWorld = new THREE.Vector3();
@@ -143,6 +151,15 @@ export class LunarEngine {
     const shadow = this.sunLight.shadow.camera;
     shadow.left = shadow.bottom = -radius; shadow.right = shadow.top = radius;
     shadow.near = .01; shadow.far = 400; shadow.updateProjectionMatrix();
+    this.powerModel = createPowerTelemetry(site.ephemeris_timeline);
+    disposeSkyPaths(this.skyPaths);
+    this.skyPaths = createSkyPaths(site.ephemeris_timeline, convergence);
+    this.skyPaths.visible = this.skyPathsEnabled; this.skyScene.add(this.skyPaths);
+    this.scienceMarkers?.dispose();
+    const candidates = findScienceCandidates(field, site.terrain_metadata);
+    this.scienceCount = candidates.length;
+    this.scienceMarkers = createScienceMarkers(candidates); this.scene.add(this.scienceMarkers.group);
+    terrain.setSlopeHazard(this.slopesEnabled);
     this.refreshTerrainBounds();
     terrain.setTopographic(this.view.mode === 'top');
     this.mapActive = false;
@@ -156,6 +173,8 @@ export class LunarEngine {
     this.assertAlive();
     if (!this.timeline) throw new Error('Load a site before setting time');
     const state = this.timeline.sample(timestampMs);
+    this.currentPower = this.powerModel?.sample(state.timestampMs);
+    if (this.currentPower) this.lander.setBattery(this.currentPower.battery_pct);
     directionXYZ(state.sun.azimuth_deg + this.convergence, state.sun.elevation_deg, this.sunDirection);
     directionXYZ(state.earth.azimuth_deg + this.convergence, state.earth.elevation_deg, this.earthDirection);
     this.sky.update(this.sunDirection, this.earthDirection, new THREE.Vector3());
@@ -192,6 +211,7 @@ export class LunarEngine {
     const geometry=(this.root.children[0] as THREE.Mesh).geometry;
     this.queries.rebuild(geometry,this.segments);
     const heightAt=(x:number,z:number)=>meshHeightAt(geometry,this.patchSize,this.segments,x,z);
+    this.scienceMarkers?.place(heightAt);
     this.lander.place(this.centerY,heightAt); this.mission.projectRing(heightAt);
     this.root.updateMatrixWorld(true); this.moon?.mesh.updateMatrixWorld(true);
     const dx=heightAt(.001,0)-heightAt(-.001,0),dz=heightAt(0,.001)-heightAt(0,-.001);
@@ -203,6 +223,10 @@ export class LunarEngine {
     this.view.setInspectionPose(downhill,this.panelOrigin);
   }
   setVisualEffectsEnabled(enabled:boolean):void { this.effectsEnabled=enabled; this.post.enabled=enabled; }
+  getPowerTelemetry(): PowerTelemetry | undefined { return this.currentPower ? { ...this.currentPower } : undefined; }
+  getScienceCandidateCount(): number { return this.scienceCount; }
+  setSlopeHazardEnabled(enabled: boolean): void { this.slopesEnabled = enabled; this.terrain?.setSlopeHazard(enabled); }
+  setSkyPathsEnabled(enabled: boolean): void { this.skyPathsEnabled = enabled; if (this.skyPaths) this.skyPaths.visible = enabled; }
   setCinematicPaused(paused: boolean): void { this.view.cinematicPaused = paused; }
   setGuidesVisible(visible: boolean): void { this.guides.visible = visible; }
   setObserverHeight(metres: number): void {
@@ -275,6 +299,7 @@ export class LunarEngine {
     this.mission.group.visible=this.effectsEnabled&&!!this.timeline;
     this.mission.update(now/1000,top?this.mapCamera:this.camera,this.sunDirection,this.effectsEnabled&&!top&&!!this.timeline);
     const activeCamera = top ? this.mapCamera : this.camera;
+    this.scienceMarkers?.update(activeCamera);
     if (!top) {
       const near = Math.max(.00001, Math.min(10,this.camera.position.distanceTo(this.observer)*.001));
       if (Math.abs(near-this.camera.near)>this.camera.near*.05) { this.camera.near=near; this.camera.updateProjectionMatrix(); }
@@ -306,6 +331,7 @@ export class LunarEngine {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true; this.request?.abort(); this.renderer.setAnimationLoop(null);
+    disposeSkyPaths(this.skyPaths); this.scienceMarkers?.dispose();
     this.post.dispose(); this.queries.dispose(); this.lander.dispose(); this.mission.dispose();
     this.moon?.dispose(); this.release(this.skyScene); this.skyScene.clear(); this.terrain?.disposeMaterials(); this.mapControls.dispose(); this.sky.dispose(); this.sunLight.shadow.dispose(); this.resizeObserver.disconnect(); this.controls.dispose(); this.release(this.scene); this.scene.clear(); this.renderer.dispose();
     if (this.ownsCanvas) this.renderer.domElement.remove();

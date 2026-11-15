@@ -3,6 +3,7 @@ import { buildTerrain, sampleHeight, type HeightField } from './terrain.js';
 import { regolithTexture, keepBelowBloom } from './proceduralTextures.js';
 import { lunarSag } from './MoonBody.js';
 import type { SiteData } from './data.js';
+import { addSlopeColors } from './analytics.js';
 
 /** Two spatial resolutions in kilometres; outer relief is illustrative, not a DEM. */
 export function createTerrainLOD(field: HeightField, metadata: SiteData['terrain_metadata'], segments = 512) {
@@ -13,6 +14,11 @@ export function createTerrainLOD(field: HeightField, metadata: SiteData['terrain
   material.bumpMap=bump;
   // Normal perturbation only: this does not displace scientific vertex heights.
   material.bumpScale=.15;keepBelowBloom(material);
+  addSlopeColors(geometry);
+  const slopeMaterial = material.clone();
+  slopeMaterial.color.set(0xffffff); slopeMaterial.vertexColors = true;
+  slopeMaterial.bumpMap = null; keepBelowBloom(slopeMaterial);
+  let slopesEnabled = false, topographicEnabled = false;
   const topoMaterial = new ShaderMaterial({
     uniforms: { low: { value: metadata.min_elevation_m / 1000 }, high: { value: metadata.max_elevation_m / 1000 } },
     vertexShader: `attribute float elevation; varying float h; void main(){h=elevation;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
@@ -72,10 +78,16 @@ export function createTerrainLOD(field: HeightField, metadata: SiteData['terrain
   [geometry, outer].forEach((g, index) => {
     g.setAttribute('elevation', new Float32BufferAttribute(Array.from({length: g.attributes.position.count}, (_, i) => originals[index][i * 3 + 1]), 1));
   });
+  function applyMaterials() {
+    const meshes = group.children as Mesh[];
+    meshes[0].material = slopesEnabled ? slopeMaterial : topographicEnabled ? topoMaterial : material;
+    meshes[1].material = topographicEnabled ? topoMaterial : material;
+  }
   return {
     group, centerY,
-    setTopographic(enabled: boolean) { for (const mesh of group.children as Mesh[]) mesh.material = enabled ? topoMaterial : material; },
-    disposeMaterials() { bump?.dispose(); material.dispose(); topoMaterial.dispose(); },
+    setTopographic(enabled: boolean) { topographicEnabled = enabled; applyMaterials(); },
+    setSlopeHazard(enabled: boolean) { slopesEnabled = enabled; applyMaterials(); },
+    disposeMaterials() { bump?.dispose(); material.dispose(); topoMaterial.dispose(); slopeMaterial.dispose(); },
     setExaggeration(value: number) {
       [geometry, outer].forEach((g, index) => {
         const p = g.attributes.position, original = originals[index];

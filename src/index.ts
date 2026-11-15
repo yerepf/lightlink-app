@@ -6,3 +6,4 @@ export { decodeHeightmap16, decodePng16 } from './png16.js';
 
 export { createMockSite } from './mock.js';
 export { type ViewMode } from './SurfaceCamera.js';
+export { createPowerTelemetry, type PowerTelemetry } from './analytics.js';
