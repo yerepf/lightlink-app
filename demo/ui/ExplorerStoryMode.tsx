@@ -93,7 +93,7 @@ export class ExplorerStoryMode {
   private updateAudioControls() {
     this.sound.textContent = this.audio.enabled ? 'Audio on' : this.introducing ? 'Hear Alba' : 'Audio off';
     this.sound.setAttribute('aria-pressed', String(this.audio.enabled));
-    this.replay.disabled = !this.audio.enabled || this.busy || this.failed;
+    this.replay.disabled = !this.audio.enabled || (!this.introducing && (this.busy || this.failed));
   }
   private speak() {
     this.voiceStatus.textContent = '';
@@ -102,9 +102,9 @@ export class ExplorerStoryMode {
   }
   setBusy(busy: boolean) {
     this.busy = busy;
-    if (busy) this.audio.stopVoice();
+    if (busy && !this.introducing) this.audio.stopVoice();
     this.render();
-    if (!busy) this.speak();
+    if (!busy && !this.introducing) this.speak();
   }
   setFailure() { this.failed = true; this.busy = false; this.render(); }
   rotated() { if (this.step === 1 && !this.busy && !this.failed && !this.ready) this.unlock('Orientation complete.'); }
@@ -165,10 +165,15 @@ export class ExplorerStoryMode {
     this.title.textContent = this.introducing ? 'Meet Alba' : this.done ? 'Certified Lunar Planner' : titles[step - 1];
     this.copy.textContent = this.introducing ? introduction : this.done ? 'You completed all six missions. You’ve earned your lunar planning badge. I’ll see you on the next mission.' : narration[step - 1];
     this.content.replaceChildren(); this.actions.replaceChildren();
-    this.feedback.textContent = this.introducing ? '' : this.done ? this.comparison : this.failed ? 'The mission could not load. Try again.' : this.busy ? 'Preparing lunar terrain…' : this.note;
+    this.feedback.textContent = this.done ? this.comparison : this.failed ? 'The mission could not load. Try again.' : this.busy ? 'Preparing lunar terrain…' : this.introducing ? '' : this.note;
     this.updateAudioControls();
 
-    if (this.introducing) { this.actions.append(this.button('Start mission', () => this.go(1), true)); return; }
+    if (this.introducing) {
+      this.actions.append(this.failed
+        ? this.button('Retry', this.callbacks.retry, true)
+        : this.button('Start mission', () => this.go(1), true, this.busy));
+      return;
+    }
     if (this.done) { this.actions.append(this.button('Open Mission Planner', this.callbacks.planner, true)); return; }
     if (this.failed) { this.actions.append(this.button('Retry', this.callbacks.retry, true)); return; }
     if (this.busy) return;

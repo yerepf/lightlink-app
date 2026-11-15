@@ -934,7 +934,7 @@ function openComparator() {
 function enterStoryStep(step: 1 | 2 | 3 | 4 | 5 | 6) {
   appShell.dataset.storyStep = String(step);
   timeline.setCoVisibilityGuide(null);
-  if (step === 1) { void prepareStory(); return; }
+  if (step === 1) return;
   if (step === 2) {
     setSlopeOverlay(true); setView('top');
     const hazard = engine?.findHazard();
@@ -980,6 +980,7 @@ function restartStory() {
   timeline.setCoVisibilityGuide(null);
   appShell.dataset.storyStep = '0';
   story.start();
+  void prepareStory();
 }
 
 function submitCoordinates(event: SubmitEvent): void {
