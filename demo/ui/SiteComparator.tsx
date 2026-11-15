@@ -6,7 +6,7 @@ import { el } from './dom';
 type Choice = { id: string; label: string };
 const number = new Intl.NumberFormat('en', { maximumFractionDigits: 1 });
 const utc = (ms: number) => new Date(ms).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
-const source = { remote: 'API', bundled: 'Local copy', mock: 'Simulated', local: 'Local horizon' };
+const source = { remote: 'API', bundled: 'Local copy', local: 'Local horizon' };
 const control = (label: string, input: HTMLElement) => el('label', { class: 'compare__field' }, label, input);
 
 export class SiteComparator {
@@ -112,13 +112,12 @@ export class SiteComparator {
         row('Terrain < 10°', percent.map(p => Number.isFinite(p) ? `${number.format(p)} %` : 'No data')),
         row('Window', ranges.map(r => `${utc(r.start)} — ${utc(r.end)}`))));
     const delta = totals[0].co_visibility - totals[1].co_visibility;
-    const comparable = (this.assets[0].origin === 'mock') === (this.assets[1].origin === 'mock');
-    const recommendation = !comparable ? 'One dataset is simulated, so no recommendation is available.' : Math.abs(delta) < .000001
+    const recommendation = Math.abs(delta) < .000001
       ? 'Both options have the same co-visibility duration.' : `Option ${delta > 0 ? 'A' : 'B'} · ${labels[delta > 0 ? 0 : 1]} offers ${number.format(Math.abs(delta))} more hours of co-visibility.`;
     this.message.textContent = '';
     this.results.append(table, el('p', { class: 'compare__recommendation', role: 'status' }, recommendation),
       el('p', { class: 'compare__fineprint' }, 'Slope percentages cover the entire elevation patch. The local horizon covers that patch. DTE measures geometric line of sight.'));
     const sameSelection = this.a.value === this.b.value && ranges[0].start === ranges[1].start;
-    if (comparable && !sameSelection) this.compared(recommendation);
+    if (!sameSelection) this.compared(recommendation);
   }
 }

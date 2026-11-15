@@ -19,6 +19,8 @@ export class PlannerMissions {
   private invitationNotice = '';
   private disposeRoute?: () => void;
   private busy = false;
+  private showingList = false;
+  private listRequest?: symbol;
 
   constructor(private readonly api: PlannerApi, mount: HTMLElement, private readonly callbacks: {
     sites(): MissionRouteSite[];
@@ -43,12 +45,8 @@ export class PlannerMissions {
       this.showAuth();
       return;
     }
-    this.content.replaceChildren();
-    void this.run('Loading missions…', async () => {
-      this.user ??= await this.api.me();
-      this.callbacks.sessionChanged();
-      await this.loadList();
-    }, 'Could not load missions. Close and reopen this window to retry.');
+    this.showList();
+    void this.loadList();
   }
 
   close() { if (this.dialog.open) this.dialog.close(); this.clearRoute(); }
@@ -69,6 +67,7 @@ export class PlannerMissions {
     this.api.clearSession();
     this.user = undefined; this.missions = []; this.invitations = [];
     this.missionsUnavailable = false; this.invitationNotice = '';
+    this.listRequest = undefined;
     this.callbacks.sessionChanged();
   }
 
@@ -91,6 +90,8 @@ export class PlannerMissions {
   }
 
   private showAuth(registering = false, emailValue = '') {
+    this.showingList = false;
+    this.clearRoute();
     this.title.textContent = registering ? 'Create a planner account' : 'Sign in to Mission Planner';
     const name = el('input', { autocomplete: 'name', required: true, maxlength: 120 });
     const email = el('input', { type: 'email', autocomplete: 'email', required: true, maxlength: 254, value: emailValue });
@@ -115,17 +116,34 @@ export class PlannerMissions {
         }
         this.user = await this.api.login(email.value.trim(), entered);
         this.callbacks.sessionChanged();
-        await this.loadList();
+        this.showList();
+        void this.loadList();
       }, registering ? 'Could not create your account. Check your details or sign in if you already registered.'
-        : 'Could not sign in or load your missions. Check your credentials and connection.');
+        : 'Could not sign in. Check your credentials and connection.');
     });
     this.content.replaceChildren(el('p', { class: 'flight-dialog__intro' }, 'Save plans, share sites and respond to invitations.'), form);
   }
 
   private async loadList() {
-    const [missions, invitations] = await Promise.allSettled([this.api.missions(), this.api.invitations()]);
-    for (const result of [missions, invitations]) {
-      if (result.status === 'rejected' && result.reason instanceof BackendError && result.reason.status === 401) throw result.reason;
+    if (this.listRequest || !this.api.token) return;
+    const request = this.listRequest = Symbol();
+    if (this.showingList) this.showList();
+    const [missions, invitations, profile] = await Promise.allSettled([
+      this.api.missions(), this.api.invitations(), this.user ?? this.api.me(),
+    ]);
+    if (this.listRequest !== request) return;
+    this.listRequest = undefined;
+    const unauthorized = (result: PromiseSettledResult<unknown>) =>
+      result.status === 'rejected' && result.reason instanceof BackendError && result.reason.status === 401;
+    if (unauthorized(missions) || unauthorized(profile)) {
+      this.endSession();
+      this.showAuth();
+      this.status.textContent = 'Your session expired. Sign in again.';
+      return;
+    }
+    if (profile.status === 'fulfilled' && !this.user) {
+      this.user = profile.value;
+      this.callbacks.sessionChanged();
     }
     this.missionsUnavailable = missions.status === 'rejected';
     if (missions.status === 'fulfilled') this.missions = missions.value;
@@ -136,11 +154,12 @@ export class PlannerMissions {
       this.invitationNotice = invitations.reason instanceof BackendError && invitations.reason.status === 404
         ? 'Invitations are unavailable on this server.' : 'Could not load invitations. Select Refresh to try again.';
     }
-    this.showList();
+    if (this.showingList) this.showList();
   }
 
   private showList() {
     this.clearRoute();
+    this.showingList = true;
     this.title.textContent = 'Missions';
     const active = this.callbacks.activeMission();
     const list = el('ul', { class: 'planner-list' }, ...this.missions.map(mission => el('li', {},
@@ -150,7 +169,7 @@ export class PlannerMissions {
       el('div', {}, el('strong', {}, invitation.mission_name), el('small', {}, `Invited by ${invitation.invited_by_name}`)),
       el('div', { class: 'planner-dialog__actions' }, this.button('Accept', () => this.respond(invitation.id, true), true), this.button('Decline', () => this.respond(invitation.id, false))))));
     this.content.replaceChildren(
-      el('div', { class: 'planner-account' }, el('div', {}, el('strong', {}, this.user?.name ?? ''), el('small', {}, this.user?.email ?? '')),
+      el('div', { class: 'planner-account' }, el('div', {}, el('strong', {}, this.user?.name ?? 'Signed in'), el('small', {}, this.user?.email ?? '')),
         this.button('Sign out', () => {
           void this.run('Signing out…', async () => {
             try { await this.api.logout(); }
@@ -159,19 +178,22 @@ export class PlannerMissions {
         })),
       ...(active ? [el('div', { class: 'planner-account' }, el('span', {}, `Active mission: ${active.name}`), this.button('Leave mission', () => { this.callbacks.leaveMission(); this.showList(); }))] : []),
       el('div', { class: 'planner-dialog__actions' }, this.button('New mission', () => this.showEditor(), true),
-        this.button('Refresh', () => void this.run('Refreshing…', () => this.loadList(), 'Could not refresh missions. Try again.'))),
+        this.button('Refresh', () => void this.loadList())),
       el('h3', {}, 'Your missions'),
+      ...(this.listRequest ? [el('p', { class: 'flight-dialog__intro', role: 'status' }, 'Refreshing missions and invitations…')] : []),
       ...(this.missionsUnavailable ? [el('p', { class: 'flight-dialog__intro', role: 'status' }, 'Could not load missions. Select Refresh to try again.')] : []),
-      ...(list.childElementCount ? [list] : !this.missionsUnavailable ? [el('p', { class: 'flight-dialog__intro' }, 'Create a mission or accept an invitation.')] : []),
+      ...(list.childElementCount ? [list] : !this.missionsUnavailable && !this.listRequest ? [el('p', { class: 'flight-dialog__intro' }, 'Create a mission or accept an invitation.')] : []),
       el('h3', {}, 'Invitations'), inbox.childElementCount ? inbox
-        : el('p', { class: 'flight-dialog__intro' }, this.invitationNotice || 'No pending invitations.'),
+        : el('p', { class: 'flight-dialog__intro' }, this.invitationNotice || (this.listRequest ? 'Checking invitations…' : 'No pending invitations.')),
     );
   }
 
   private respond(id: string, accept: boolean) {
     void this.run(accept ? 'Accepting invitation…' : 'Declining invitation…', async () => {
       await this.api.respond(id, accept);
-      await this.loadList();
+      this.invitations = this.invitations.filter(invitation => invitation.id !== id);
+      this.listRequest = undefined;
+      void this.loadList();
       this.status.textContent = accept ? 'Mission added to your list.' : 'Invitation declined.';
     }, 'Could not respond. Refresh the list to check whether the invitation is still pending.');
   }
@@ -193,6 +215,7 @@ export class PlannerMissions {
   }
 
   private showMission(mission: Mission, members?: PlannerUser[], sent: Invitation[] = []) {
+    this.showingList = false;
     this.title.textContent = mission.name;
     this.content.replaceChildren(
       el('p', { class: 'flight-dialog__intro' }, `${utc(mission.start_utc)} to ${utc(mission.end_utc)}`),
@@ -226,6 +249,7 @@ export class PlannerMissions {
   }
 
   private showEditor(mission?: Mission) {
+    this.showingList = false;
     this.title.textContent = mission ? 'Edit mission' : 'New mission';
     const draft = mission ?? this.callbacks.draft();
     const name = el('input', { required: true, maxlength: 120, value: mission?.name ?? '' });
@@ -277,6 +301,7 @@ export class PlannerMissions {
       void this.run('Saving mission…', async () => {
         const saved = await this.api.saveMission({ name: name.value.trim(), description: description.value.trim(), site_ids: siteIds,
           start_utc: startUtc, end_utc: endUtc, step_hours: Number(step.value), observer_height_m: Number(height.value) }, mission?.id);
+        this.listRequest = undefined;
         this.missions = [saved, ...this.missions.filter(item => item.id !== saved.id)];
         if (!mission && this.dialog.open) this.showCreatedMission(saved, choices);
         else {
@@ -289,6 +314,7 @@ export class PlannerMissions {
   }
 
   private showCreatedMission(mission: Mission, choices: MissionRouteSite[]) {
+    this.showingList = false;
     this.title.textContent = mission.name;
     this.dialog.classList.add('planner-dialog--route');
     const sites = mission.site_ids.map(id => {

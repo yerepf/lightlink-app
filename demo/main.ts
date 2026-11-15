@@ -1,5 +1,5 @@
 import { Vector3 } from 'three';
-import { LunarEngine, createMockSite } from '../src/index';
+import { LunarEngine } from '../src/index';
 import type { LandingPoint } from '../src/LunarEngine';
 import type { SiteData, TimeState } from '../src/data';
 import { coverage } from '../src/missionMetrics';
@@ -447,20 +447,19 @@ const story = new ExplorerStoryMode(byId('story-mount'), {
 });
 
 const comparator = new SiteComparator(appShell, async (id, abort) => {
-  if (id === '@current' && activeAsset && siteData) return { ...activeAsset, site: siteData, origin: landing && activeAsset.origin !== 'mock' ? 'local' : activeAsset.origin };
-  if (id === 'MOCK') return { ...createMockSite(), origin: 'mock' };
+  if (id === '@current' && activeAsset && siteData) return { ...activeAsset, site: siteData, origin: landing ? 'local' : activeAsset.origin };
   if (id.startsWith('custom_') && !customRanges.has(id)) customRanges.set(id, customDateRange(currentTime));
   return api.loadSite(id, Number(lastHeight) as 2 | 5, abort, selectedRange(id), mode === 'explorer' || catalogOffline);
 }, recommendation => story.compared(recommendation));
 
 const missions = new PlannerMissions(accounts, appShell, {
-  sites: () => plannerSiteOptions.length ? [...plannerSiteOptions] : Array.from(siteSelect.select.options).filter(option => !option.disabled && option.value !== 'MOCK')
+  sites: () => plannerSiteOptions.length ? [...plannerSiteOptions] : Array.from(siteSelect.select.options).filter(option => !option.disabled)
     .map(option => ({ id: option.value, label: option.text })),
   draft: () => {
     const range = siteData ? coverage(siteData.ephemeris_timeline) : undefined;
-    const useRange = range && lastSelection !== 'MOCK' && range.end - range.start >= 3600000 && range.end - range.start <= 62 * 86400000;
+    const useRange = range && range.end - range.start >= 3600000 && range.end - range.start <= 62 * 86400000;
     const dates = useRange ? { start_utc: new Date(range.start).toISOString(), end_utc: new Date(range.end).toISOString() } : customDateRange(currentTime);
-    return { ...dates, site_ids: lastSelection && lastSelection !== 'MOCK' ? [lastSelection] : [TRAINING_SITE], observer_height_m: Number(lastHeight) };
+    return { ...dates, site_ids: [lastSelection || TRAINING_SITE], observer_height_m: Number(lastHeight) };
   },
   sessionChanged: () => {
     if (!accounts.token) {
@@ -512,7 +511,6 @@ listen(mobileQuery, 'change', () => {
 });
 
 function sourceLabel(): string {
-  if (activeAsset?.origin === 'mock') return landing ? 'SIMULATED · local horizon' : 'SIMULATED';
   if (landing) return `Local horizon · ${activeAsset?.origin === 'bundled' ? 'local copy' : 'base-site ephemerides'}`;
   return activeAsset?.origin === 'bundled' ? 'Local copy' : 'Backend';
 }
@@ -527,10 +525,8 @@ function setFormDisabled(disabled: boolean): void {
   compareOpen.disabled = disabled || !siteData;
 }
 
-function setSourceCopy(mock: boolean): void {
-  const original = mock
-    ? 'Simulated terrain, horizon and ephemerides for testing without the API.'
-    : 'LOLA terrain and JPL Horizons ephemerides from the mission dataset. Geometric visualization for exploratory planning.';
+function setSourceCopy(): void {
+  const original = 'LOLA terrain and JPL Horizons ephemerides from the mission dataset. Geometric visualization for exploratory planning.';
   const text = `${original}${landing ? ' The relocated site uses a horizon estimated from the local elevation model and angles from the base site.' : ''}`;
   setText(dataSource, text);
   setText(statusSource, text);
@@ -811,7 +807,7 @@ function applyLanding(point: LandingPoint) {
   const { start: from, end } = coverage(siteData.ephemeris_timeline);
   timeline.configure(siteData.ephemeris_timeline, from, end);
   angularChart.replaceChildren(angleChart(siteData));
-  setSourceCopy(activeAsset?.origin === 'mock');
+  setSourceCopy();
   statusSubtitle.textContent = `${lastSelection} · X ${point.x.toFixed(3)} km · Z ${point.z.toFixed(3)} km · ${point.slopeDeg.toFixed(1)}°`;
   updateAt(currentTime); refreshLive();
   announce(`Lander at X ${point.x.toFixed(3)} km, Z ${point.z.toFixed(3)} km. Slope ${point.slopeDeg.toFixed(1)}°. Horizon recalculated in ${Math.round(performance.now() - start)} ms.`);
@@ -891,9 +887,9 @@ listen(viewport, 'keydown', event => {
 
 function openComparator() {
   if (!siteData || loading) return;
-  const current = { id: '@current', label: `${lastSelection === 'MOCK' ? 'Simulated demo' : lastSelection}${landing ? ' · relocated' : ' · active'}` };
+  const current = { id: '@current', label: `${lastSelection}${landing ? ' · relocated' : ' · active'}` };
   const choices = [current, ...Array.from(siteSelect.select.options)
-    .filter(option => option.value && !option.disabled && (option.value !== 'MOCK' || lastSelection === 'MOCK'))
+    .filter(option => option.value && !option.disabled)
     .map(option => ({ id: option.value, label: option.textContent ?? option.value }))];
   comparator.open(choices, lastSelection === 'Site01' ? 'Site07' : 'Site01');
 }
@@ -1010,8 +1006,7 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
     phase = selected.startsWith('custom_') ? 'Preparing terrain, horizon and ephemerides' : 'Downloading site data';
     report();
     if (!engine) throw new Error('The 3D engine is unavailable.');
-    const mock = selected === 'MOCK' ? createMockSite() : undefined;
-    const asset: SiteAsset = mock ? { ...mock, origin: 'mock' } : await api.loadSite(selected, Number(selectedHeight) as 2 | 5, active.signal, selectedRange(selected), preferBundled);
+    const asset = await api.loadSite(selected, Number(selectedHeight) as 2 | 5, active.signal, selectedRange(selected), preferBundled);
     const { site, field } = asset;
     if (disposed || active.signal.aborted) return false;
 
@@ -1027,7 +1022,7 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
     landing = undefined;
     const start = Date.parse(site.ephemeris_timeline[0].timestamp_utc);
     const end = Date.parse(site.ephemeris_timeline.at(-1)!.timestamp_utc);
-    liveClock.configure(start, end, !!mock);
+    liveClock.configure(start, end, false);
     currentTime = clamp(currentTime, start, end);
     timeline.configure(site.ephemeris_timeline, start, end);
     timeline.setTime(currentTime);
@@ -1041,16 +1036,12 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
         : '';
     setText(
       siteDetail,
-      mock
-        ? 'SIMULATED · 20 × 20 km patch. Synthetic terrain, horizon and visibility for testing without the API.'
-        : `${selected} · ${sourceLabel()} · 16-bit PNG · Patch size ${site.terrain_metadata.patch_size_km.toFixed(3)} km · Observer at ${selectedHeight} m.${heightNote}`,
+      `${selected} · ${sourceLabel()} · 16-bit PNG · Patch size ${site.terrain_metadata.patch_size_km.toFixed(3)} km · Observer at ${selectedHeight} m.${heightNote}`,
     );
-    setSourceCopy(!!mock);
+    setSourceCopy();
     setText(
       statusSubtitle,
-      mock
-        ? 'Simulation · Synthetic test data'
-        : `${selected} · ${sourceLabel()} · ${site.terrain_metadata.patch_size_km.toFixed(1)} km · Observer at ${selectedHeight} m`,
+      `${selected} · ${sourceLabel()} · ${site.terrain_metadata.patch_size_km.toFixed(1)} km · Observer at ${selectedHeight} m`,
     );
     heightSelect.select.options[1].textContent = selected.startsWith('custom_') ? '5 m' : '5 m (approximate)';
     updateAt(currentTime);
@@ -1084,10 +1075,7 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
   }
 }
 
-const bundledOptions = [
-  ...OFFLINE_SITES.map(site_id => ({ value: site_id, label: site_id })),
-  { value: 'MOCK', label: 'Offline demo (simulated)' },
-];
+const bundledOptions = OFFLINE_SITES.map(site_id => ({ value: site_id, label: site_id }));
 
 async function fetchCatalog(): Promise<void> {
   if (activeMission && mode === 'planner') return;
@@ -1112,7 +1100,7 @@ async function fetchCatalog(): Promise<void> {
     }
     if (mode === 'planner') plannerSiteOptions = options.filter(option => !option.disabled)
       .map(option => ({ id: option.value, label: option.label, coordinates: option.coordinates }));
-    siteSelect.setOptions([...options, bundledOptions.at(-1)!], previous);
+    siteSelect.setOptions(options, previous);
   } catch {
     if (!active.signal.aborted) catalogOffline = true;
   }
@@ -1183,9 +1171,7 @@ async function initialize(): Promise<void> {
   if (!engine) engine = new LunarEngine(viewport);
   if (!siteSelect.value) siteSelect.setOptions(bundledOptions, TRAINING_SITE);
   void fetchCatalog();
-  if (!await loadSelected(undefined, TRAINING_SITE) && mode === 'planner' && !siteData && !loading && !disposed) {
-    siteSelect.setValue('MOCK'); await loadSelected(undefined, 'MOCK');
-  }
+  await loadSelected(undefined, TRAINING_SITE);
 }
 
 export function setMode(next: 'explorer' | 'planner') {
