@@ -4,7 +4,7 @@ Select **Start**, then choose **Explorer** (`#explorer`) or **Mission Planner** 
 
 ## Explorer
 
-Alba introduces herself on the **Meet Alba** screen before the first mission. Select **Hear Alba** to enable audio, then **Start mission** when ready. **Replay voice** repeats the current passage. Narration uses a supported female English voice from the device, and every passage appears on screen. The campaign uses the bundled `Site07` dataset.
+Alba introduces herself on the **Meet Alba** screen before the first mission. Select **Hear Alba** to enable audio, then **Start mission** when ready. **Replay voice** repeats the current passage. Explorer plays the bundled HeyGen narration. Every passage appears on screen. The campaign uses the bundled `Site07` dataset.
 
 1. **Welcome to the lunar south pole.** Rotate the view or select **Let's begin**.
 2. **A landing on the wrong slope.** Activate relocation and choose a green point with a slope below 10°.

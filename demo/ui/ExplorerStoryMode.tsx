@@ -42,7 +42,7 @@ export class ExplorerStoryMode {
   private readonly replay = el('button', { class: 'story__audio', type: 'button' }, 'Replay voice');
   private readonly voiceStatus = el('p', { class: 'story__feedback', role: 'status' });
   private readonly audio = new ExplorerAudio(active => { this.root.dataset.speaking = String(active); }, () => {
-    this.voiceStatus.textContent = 'A female English voice is unavailable on this device. The full dialogue is on screen.';
+    this.voiceStatus.textContent = 'Alba’s recording couldn’t play. The full dialogue is on screen.';
   });
 
   constructor(mount: HTMLElement, private readonly callbacks: {
@@ -97,7 +97,8 @@ export class ExplorerStoryMode {
   }
   private speak() {
     this.voiceStatus.textContent = '';
-    this.audio.narrate(this.copy.textContent?.replaceAll('JPL', 'J P L') ?? '');
+    const passage = this.introducing ? 0 : this.done ? narration.length + 1 : this.storyStep;
+    this.audio.narrate(passage);
   }
   setBusy(busy: boolean) {
     this.busy = busy;
