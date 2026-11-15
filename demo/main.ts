@@ -1,6 +1,7 @@
 import { Vector3 } from 'three';
 import { LunarEngine } from '../src/index';
 import type { LandingPoint } from '../src/LunarEngine';
+import type { ViewMode } from '../src/SurfaceCamera';
 import type { SiteData, TimeState } from '../src/data';
 import { coverage, HOUR } from '../src/missionMetrics';
 import { LiveClock } from '../src/LiveClock';
@@ -99,7 +100,8 @@ let loading = true;
 let currentTime = Date.now();
 let lastSelection = '';
 let lastHeight = '2';
-let viewMode: 'surface' | 'orbital' | 'cinematic' | 'top' | 'globe' | 'lander' = 'surface';
+let viewMode: ViewMode = 'surface';
+let relocationDisplay: { view: ViewMode; slope: boolean } | undefined;
 let playbackRaf = 0;
 let lastStatusPaint = 0;
 let compassTimer = 0;
@@ -794,7 +796,9 @@ function setSlopeOverlay(checked: boolean) {
 }
 
 function setRelocating(enabled: boolean) {
-  relocating = enabled && !loading && !!siteData;
+  const next = enabled && !loading && !!siteData;
+  if (next && !relocating) relocationDisplay = { view: viewMode, slope: slopeSwitch.isChecked };
+  relocating = next;
   relocateButton.setPressed(relocating);
   relocateButton.setLabel(relocating ? 'Exit relocation' : 'Activate relocation');
   moveLander.textContent = relocating ? 'Cancel move' : 'Move lander';
@@ -807,7 +811,16 @@ function setRelocating(enabled: boolean) {
   keyboardPoint = undefined;
   pointerPosition = undefined;
   delete relocateFeedback.dataset.safe;
-  if (!relocating) { engine?.previewLandingPoint(); return; }
+  if (!relocating) {
+    engine?.previewLandingPoint();
+    const previous = relocationDisplay;
+    relocationDisplay = undefined;
+    if (previous) {
+      if (slopeSwitch.isChecked !== previous.slope) setSlopeOverlay(previous.slope);
+      if (viewMode !== previous.view) setView(previous.view);
+    }
+    return;
+  }
   setSlopeOverlay(true);
   if (viewMode !== 'top') setView('top');
   if (isMobileViewport()) setPanelOpen(false);
@@ -851,6 +864,10 @@ function pickLanding(x: number, y: number) {
   try {
     applyLanding(point);
     setRelocating(false);
+    if (story.step === 2) {
+      setSlopeOverlay(false);
+      setView('surface');
+    }
     story.landing(point.slopeDeg);
     if (story.step === 2) byId('story-mount').querySelector<HTMLButtonElement>('button:not([disabled])')?.focus();
     else if (mode === 'planner') moveLander.focus({ preventScroll: true });
@@ -940,9 +957,9 @@ async function prepareStory() {
   const run = ++campaignRun;
   story.setBusy(true);
   liveClock.followNow = false;
+  setRelocating(false);
   setSlopeOverlay(false);
   setView('orbital');
-  setRelocating(false);
   heightSelect.setValue('2'); siteSelect.setValue(TRAINING_SITE);
   const loaded = await loadSelected(undefined, TRAINING_SITE, true);
   if (mode !== 'explorer' || campaignRun !== run) return;
@@ -956,7 +973,13 @@ async function prepareStory() {
 
 function restartStory() {
   if (mode !== 'explorer') return;
-  comparator.close(); story.start();
+  campaignRun++;
+  comparator.close();
+  setRelocating(false);
+  setSlopeOverlay(false);
+  timeline.setCoVisibilityGuide(null);
+  appShell.dataset.storyStep = '0';
+  story.start();
 }
 
 function submitCoordinates(event: SubmitEvent): void {
@@ -1214,7 +1237,7 @@ export function setMode(next: 'explorer' | 'planner') {
     missions.close();
     if (activeMission) leaveMission();
     if (!catalogRequest) void fetchCatalog();
-    story.start();
+    restartStory();
   } else {
     story.close();
     timeline.setCoVisibilityGuide(null);

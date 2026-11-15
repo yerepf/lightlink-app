@@ -4,7 +4,7 @@ Select **Start**, then choose **Explorer** (`#explorer`) or **Mission Planner** 
 
 ## Explorer
 
-The campaign uses the bundled `Site07` dataset. An astronaut speaks from the left of the dialogue panel while the map and timeline remain interactive. Select **Audio off** to turn on music, sound effects and narration. **Replay voice** repeats the current passage. When a recording is unavailable, the app uses the device's English speech synthesis, if available.
+Alba introduces herself on the **Meet Alba** screen before the first mission. Select **Hear Alba** to enable audio, then **Start mission** when ready. **Replay voice** repeats the current passage. Narration uses a supported female English voice from the device, and every passage appears on screen. The campaign uses the bundled `Site07` dataset.
 
 1. **Welcome to the lunar south pole.** Rotate the view or select **Let's begin**.
 2. **A landing on the wrong slope.** Activate relocation and choose a green point with a slope below 10°.

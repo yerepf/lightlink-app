@@ -1,13 +1,11 @@
-const recordings = import.meta.glob<string>('../audio/astronaut-*.mp3', { eager: true, query: '?url', import: 'default' });
-
 export class ExplorerAudio {
   private readonly music = new Audio(`${import.meta.env.BASE_URL}audio/lunar-orbit.mp3`);
   private readonly effects = {
     transmission: new Audio(`${import.meta.env.BASE_URL}audio/transmission.mp3`),
     confirmed: new Audio(`${import.meta.env.BASE_URL}audio/confirmed.mp3`),
   };
-  private recording?: HTMLAudioElement;
   private speech?: SpeechSynthesisUtterance;
+  private cancelVoiceWait?: () => void;
   enabled = false;
 
   constructor(private readonly speaking: (active: boolean) => void, private readonly unavailable: () => void) {
@@ -43,40 +41,41 @@ export class ExplorerAudio {
     void sound.play().catch(() => undefined);
   }
 
-  narrate(chapter: number, text: string) {
+  narrate(text: string) {
     if (!this.enabled || document.hidden || !text) return;
     this.stopVoice();
-    const source = recordings[`../audio/astronaut-${chapter}.mp3`];
-    if (!source) {
-      this.speakWithBrowser(text);
-      return;
-    }
-    const recording = new Audio(source);
-    this.recording = recording;
-    recording.onplaying = () => { if (this.recording === recording) this.beginVoice(); };
-    recording.onended = () => { if (this.recording === recording) this.finishVoice(); };
-    const fallback = () => {
-      if (this.recording !== recording) return;
-      this.finishVoice();
-      this.speakWithBrowser(text);
-    };
-    recording.onerror = fallback;
-    void recording.play().catch(fallback);
-  }
-
-  private speakWithBrowser(text: string) {
     if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
       this.unavailable();
       return;
     }
+    const synth = window.speechSynthesis;
+    const voices = synth.getVoices();
+    if (voices.length) { this.speak(text, voices); return; }
+    // The native voice list may still be loading when audio is enabled.
+    const readVoices = () => {
+      this.cancelVoiceWait?.();
+      this.speak(text, synth.getVoices());
+    };
+    const timeout = window.setTimeout(readVoices, 1000);
+    synth.addEventListener('voiceschanged', readVoices, { once: true });
+    this.cancelVoiceWait = () => {
+      window.clearTimeout(timeout);
+      synth.removeEventListener('voiceschanged', readVoices);
+      this.cancelVoiceWait = undefined;
+    };
+  }
+
+  private speak(text: string, available: SpeechSynthesisVoice[]) {
+    const voices = available.filter(candidate => /^en(?:-|$)/i.test(candidate.lang));
+    const female = /\b(female|aria|jenny|michelle|zira|samantha|ava|allison|susan|victoria|karen|moira|kate|sonia)\b/i;
+    const selected = voices.find(candidate => female.test(candidate.name) && /^en-US$/i.test(candidate.lang))
+      ?? voices.find(candidate => female.test(candidate.name));
+    if (!selected) { this.unavailable(); return; }
     const voice = new SpeechSynthesisUtterance(text);
-    voice.lang = 'en-US';
+    voice.voice = selected;
+    voice.lang = selected.lang;
     voice.rate = .92;
     voice.volume = .9;
-    const voices = window.speechSynthesis.getVoices().filter(candidate => /^en(?:-|$)/i.test(candidate.lang));
-    voice.voice = voices.find(candidate => /natural|neural/i.test(candidate.name) && /^en-US$/i.test(candidate.lang))
-      ?? voices.find(candidate => candidate.localService && /^en-US$/i.test(candidate.lang))
-      ?? voices[0] ?? null;
     voice.onstart = () => {
       if (this.speech !== voice) return;
       this.beginVoice();
@@ -92,10 +91,9 @@ export class ExplorerAudio {
   }
 
   stopVoice() {
+    this.cancelVoiceWait?.();
     const speech = this.speech;
-    const recording = this.recording;
     this.finishVoice();
-    recording?.pause();
     if (speech) window.speechSynthesis.cancel();
   }
 
@@ -106,7 +104,6 @@ export class ExplorerAudio {
 
   private finishVoice() {
     this.speech = undefined;
-    this.recording = undefined;
     this.music.volume = .22;
     this.speaking(false);
   }

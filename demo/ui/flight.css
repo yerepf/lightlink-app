@@ -71,8 +71,8 @@
 [data-mode="explorer"] { --timeline-h: 134px; }
 [data-mode="explorer"] .app-header { background: rgb(3 5 8 / 88%); backdrop-filter: blur(12px); }
 [data-mode="explorer"] :is(#panel-toggle, #status-toggle, #compare-open, #perf, #control-panel, #status-panel, .timeline__speeds, .timeline__live, .timeline__live-status, .timeline__sample) { display: none; }
-[data-mode="explorer"]:is([data-story-step="1"], [data-story-step="2"]) .timeline-mount { visibility: hidden; }
-[data-mode="explorer"]:is([data-story-step="1"], [data-story-step="2"]) .compass-mount { bottom: 18px; }
+[data-mode="explorer"]:is([data-story-step="0"], [data-story-step="1"], [data-story-step="2"]) .timeline-mount { visibility: hidden; }
+[data-mode="explorer"]:is([data-story-step="0"], [data-story-step="1"], [data-story-step="2"]) .compass-mount { bottom: 18px; }
 [data-mode="explorer"] .timeline { min-height: var(--timeline-h); background: #080f0d; }
 [data-mode="explorer"] .timeline__readout { margin-left: auto; }
 [data-mode="explorer"] .timeline__legend-dot--co, [data-mode="explorer"] .timeline__band--co { background: #22c55e; }
@@ -132,8 +132,8 @@
   box-shadow: inset 0 0 0 3px #03050890, 0 12px 34px #0305086b;
   scrollbar-color: var(--flight-line) var(--flight-space);
 }
-[data-mode="explorer"]:is([data-story-step="1"], [data-story-step="2"]) .story { bottom: 16px; }
-[data-mode="explorer"]:is([data-story-step="1"], [data-story-step="2"]) .story__panel { max-height: min(410px, calc(100dvh - var(--header-h) - 30px)); }
+[data-mode="explorer"]:is([data-story-step="0"], [data-story-step="1"], [data-story-step="2"]) .story { bottom: 16px; }
+[data-mode="explorer"]:is([data-story-step="0"], [data-story-step="1"], [data-story-step="2"]) .story__panel { max-height: min(410px, calc(100dvh - var(--header-h) - 30px)); }
 .story__portrait { align-self: end; position: relative; isolation: isolate; }
 .story__portrait::before {
   content: '';
@@ -327,7 +327,7 @@
   .story__head { margin-bottom: 8px; }
   .story__portrait img { height: clamp(105px, 23vh, 200px); }
   .story__panel { max-height: min(49dvh, calc(100dvh - var(--story-timeline-height, var(--timeline-h)) - var(--header-h) - 20px)); padding: 10px; }
-  [data-mode="explorer"]:is([data-story-step="1"], [data-story-step="2"]) .story { bottom: 9px; }
+  [data-mode="explorer"]:is([data-story-step="0"], [data-story-step="1"], [data-story-step="2"]) .story { bottom: 9px; }
   .header-tool { font-size: .72rem; padding-inline: 6px; min-height: 38px; }
   .planner-tools { right: 8px; max-width: calc(100% - 16px); }
   .planner-tools .flight-button { min-height: 44px; }

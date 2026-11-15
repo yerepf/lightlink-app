@@ -5,8 +5,7 @@ import { el } from './dom';
 import { ExplorerAudio } from './ExplorerAudio';
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6;
-const poses = ['explorer-astronaut', 'explorer-astronaut-explain', 'explorer-astronaut-point', 'explorer-astronaut-think',
-  'explorer-astronaut-scan', 'explorer-astronaut-compare', 'explorer-astronaut-salute'];
+const introduction = 'Hi, I’m Alba, your guide for this lunar mission.';
 const titles = ['Welcome to the lunar south pole', 'A landing on the wrong slope', 'Find light and signal', 'Can we run the experiment?', 'How we know what we see', 'Compare before you commit'];
 const narration = [
   'Look around. The ridges here can catch sunlight for long stretches, while craters that stay dark may hold water ice. We need a place where the Sun can power our lander and Earth is in sight for a direct link.',
@@ -19,6 +18,7 @@ const narration = [
 
 export class ExplorerStoryMode {
   private storyStep: Step = 1;
+  private introducing = true;
   private ready = false;
   private done = false;
   private busy = false;
@@ -29,10 +29,8 @@ export class ExplorerStoryMode {
   private shadowHours = 0;
   private comparison = '';
   private note = '';
-  private pose = 0;
-  private preloaded = false;
   private readonly root: HTMLElement;
-  private readonly portrait = el('img', { alt: '', width: 720, height: 868 });
+  private readonly portrait = el('img', { alt: '', width: 720, height: 900 });
   private readonly title = el('h2', { id: 'story-title', tabindex: -1 });
   private readonly label = el('p', { class: 'story__progress' });
   private readonly copy = el('p', { class: 'story__copy' });
@@ -44,7 +42,7 @@ export class ExplorerStoryMode {
   private readonly replay = el('button', { class: 'story__audio', type: 'button' }, 'Replay voice');
   private readonly voiceStatus = el('p', { class: 'story__feedback', role: 'status' });
   private readonly audio = new ExplorerAudio(active => { this.root.dataset.speaking = String(active); }, () => {
-    this.voiceStatus.textContent = 'English narration is unavailable on this device. The full dialogue is on screen.';
+    this.voiceStatus.textContent = 'A female English voice is unavailable on this device. The full dialogue is on screen.';
   });
 
   constructor(mount: HTMLElement, private readonly callbacks: {
@@ -57,7 +55,7 @@ export class ExplorerStoryMode {
     this.root = el('section', { class: 'story', hidden: true, 'aria-labelledby': 'story-title' },
       el('div', { class: 'story__portrait' }, this.portrait),
       el('div', { class: 'flight-panel story__panel' },
-        el('header', { class: 'story__head' }, el('span', { class: 'story__speaker' }, 'Astronaut'),
+        el('header', { class: 'story__head' }, el('span', { class: 'story__speaker' }, 'Alba'),
           el('div', { class: 'story__audio-controls' }, this.sound, this.replay)),
         this.label, this.title, this.copy, this.content, this.feedback, this.cursor, this.actions, this.voiceStatus));
     this.sound.addEventListener('click', () => {
@@ -65,36 +63,41 @@ export class ExplorerStoryMode {
       this.updateAudioControls();
       if (this.audio.enabled) this.speak();
     });
-    this.replay.addEventListener('click', () => { this.showPose((this.pose + 1) % poses.length); this.speak(); });
+    this.replay.addEventListener('click', () => this.speak());
     this.updateAudioControls();
     mount.append(this.root);
   }
 
-  get step() { return this.root.hidden || this.done ? 0 : this.storyStep; }
+  get step() { return this.root.hidden || this.introducing || this.done ? 0 : this.storyStep; }
   start() {
+    this.audio.stopVoice();
     this.root.hidden = false;
+    this.introducing = true;
     this.done = false;
-    this.go(1);
-    if (!this.preloaded) {
-      this.preloaded = true;
-      for (let i = 1; i < poses.length; i++) new Image().src = this.poseUrl(i);
-    }
+    this.busy = false;
+    this.failed = false;
+    this.cursor.hidden = true;
+    this.showPose('welcome');
+    this.render();
+    this.title.focus({ preventScroll: true });
+    this.speak();
   }
-  private poseUrl(index: number) { return `${import.meta.env.BASE_URL}art/${poses[index]}.webp`; }
-  private showPose(index: number) { this.pose = index; this.portrait.src = this.poseUrl(index); }
+  private showPose(pose: 'welcome' | 'salute') {
+    this.portrait.src = `${import.meta.env.BASE_URL}art/alba-${pose}.webp`;
+  }
   close() { this.root.hidden = true; this.audio.pause(); }
   setPageVisible(visible: boolean) {
     if (visible && !this.root.hidden) this.audio.resume();
     else this.audio.pause();
   }
   private updateAudioControls() {
-    this.sound.textContent = this.audio.enabled ? 'Audio on' : 'Audio off';
+    this.sound.textContent = this.audio.enabled ? 'Audio on' : this.introducing ? 'Hear Alba' : 'Audio off';
     this.sound.setAttribute('aria-pressed', String(this.audio.enabled));
     this.replay.disabled = !this.audio.enabled || this.busy || this.failed;
   }
   private speak() {
     this.voiceStatus.textContent = '';
-    this.audio.narrate(this.done ? 7 : this.storyStep, this.copy.textContent?.replaceAll('JPL', 'J P L') ?? '');
+    this.audio.narrate(this.copy.textContent?.replaceAll('JPL', 'J P L') ?? '');
   }
   setBusy(busy: boolean) {
     this.busy = busy;
@@ -139,10 +142,9 @@ export class ExplorerStoryMode {
     this.ready = true; this.note = note; this.render();
   }
   private go(step: Step) {
+    this.introducing = false;
     this.storyStep = step; this.ready = step === 5; this.note = ''; this.failed = false; this.noWindow = false;
     this.answered = false; this.comparison = '';
-    const nextPose = step - 1;
-    this.showPose(step !== 1 && this.pose === nextPose ? (nextPose + 1) % poses.length : nextPose);
     this.callbacks.enter(step);
     this.render(); this.title.focus({ preventScroll: true });
     if (!this.busy && !this.failed) {
@@ -158,13 +160,14 @@ export class ExplorerStoryMode {
   private render() {
     const step = this.storyStep;
     const focused = document.activeElement instanceof HTMLButtonElement && this.actions.contains(document.activeElement) ? document.activeElement.textContent : null;
-    this.label.textContent = this.done ? 'Campaign badge' : `Mission ${step} of 6`;
-    this.title.textContent = this.done ? 'Certified Lunar Planner' : titles[step - 1];
-    this.copy.textContent = this.done ? 'You completed all six missions. You’ve earned your lunar planning badge. I’ll see you on the next mission.' : narration[step - 1];
+    this.label.textContent = this.introducing ? 'Explorer' : this.done ? 'Campaign badge' : `Mission ${step} of 6`;
+    this.title.textContent = this.introducing ? 'Meet Alba' : this.done ? 'Certified Lunar Planner' : titles[step - 1];
+    this.copy.textContent = this.introducing ? introduction : this.done ? 'You completed all six missions. You’ve earned your lunar planning badge. I’ll see you on the next mission.' : narration[step - 1];
     this.content.replaceChildren(); this.actions.replaceChildren();
-    this.feedback.textContent = this.done ? this.comparison : this.failed ? 'The mission could not load. Try again.' : this.busy ? 'Preparing lunar terrain…' : this.note;
+    this.feedback.textContent = this.introducing ? '' : this.done ? this.comparison : this.failed ? 'The mission could not load. Try again.' : this.busy ? 'Preparing lunar terrain…' : this.note;
     this.updateAudioControls();
 
+    if (this.introducing) { this.actions.append(this.button('Start mission', () => this.go(1), true)); return; }
     if (this.done) { this.actions.append(this.button('Open Mission Planner', this.callbacks.planner, true)); return; }
     if (this.failed) { this.actions.append(this.button('Retry', this.callbacks.retry, true)); return; }
     if (this.busy) return;
@@ -192,7 +195,7 @@ export class ExplorerStoryMode {
         el('a', { href: 'https://ssd.jpl.nasa.gov/horizons/', target: '_blank', rel: 'noopener' }, 'JPL · Horizons')));
       if (step === 6) this.actions.append(this.button('Open comparison', this.callbacks.compare, !this.ready));
       this.actions.append(this.button(step === 6 ? 'Claim badge' : 'Continue', () => {
-        if (step === 6) { this.done = true; this.showPose(this.pose === poses.length - 1 ? 0 : poses.length - 1); this.render(); this.title.focus(); this.audio.play('confirmed'); this.speak(); }
+        if (step === 6) { this.done = true; this.showPose('salute'); this.render(); this.title.focus(); this.audio.play('confirmed'); this.speak(); }
         else this.go((step + 1) as Step);
       }, this.ready, !this.ready));
     }
