@@ -109,7 +109,12 @@
 
       <div class="compass-mount" id="compass-mount"></div>
       <div id="story-mount"></div>
-      <output id="relocate-feedback" class="flight-panel relocate-feedback" hidden></output>
+      <div id="planner-tools" class="planner-tools" hidden>
+        <output id="relocate-feedback" class="relocate-feedback" hidden></output>
+        <span id="active-mission-name" class="planner-tools__name" hidden></span>
+        <button id="move-lander" class="flight-button" type="button" aria-pressed="false" aria-controls="viewport" disabled>Move lander</button>
+        <button id="open-missions" class="flight-button" type="button" aria-haspopup="dialog">Missions</button>
+      </div>
 
       <section class="timeline-mount" id="timeline-mount" aria-label="Lunar timeline"></section>
 

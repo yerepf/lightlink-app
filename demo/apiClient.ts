@@ -1,4 +1,4 @@
-import { adaptBackendSite, BackendClient, BackendError, type BackendSiteSummary, type NewSite, type customDateRange } from '../src/backend';
+import { adaptBackendSite, BackendClient, BackendError, type BackendSiteSummary, type NewSite, type SiteRange } from '../src/backend';
 import { decodeHeightmap16 } from '../src/png16';
 import type { SiteData } from '../src/data';
 import type { HeightField } from '../src/terrain';
@@ -8,13 +8,19 @@ export const TRAINING_SITE = 'Site07';
 export type SiteOrigin = 'remote' | 'bundled' | 'mock' | 'local';
 export interface SiteAsset { site: SiteData; field: HeightField; origin: SiteOrigin }
 const directory = `${import.meta.env.BASE_URL}offline`;
+export const API_BASE = import.meta.env.VITE_API_URL?.trim() || '/api';
 
 function mayUseBundle(error: unknown, signal?: AbortSignal): boolean {
   return !signal?.aborted && (!(error instanceof BackendError) || error.status === 404 || error.status >= 500);
 }
 
 export class ApiClient {
-  private readonly backend = new BackendClient(import.meta.env.VITE_API_URL?.trim() || '/api', 6500);
+  private readonly backend: BackendClient;
+  constructor(private readonly sessionToken?: () => string | undefined) {
+    this.backend = new BackendClient(API_BASE, 6500, sessionToken);
+  }
+
+  listSavedSites(signal: AbortSignal) { return this.backend.listSavedSites(signal); }
   async listSites(signal?: AbortSignal): Promise<{ sites: BackendSiteSummary[]; offline: boolean }> {
     const bundled = OFFLINE_SITES.map(site_id => ({ site_id, observer_heights_m: [2, 5] }));
     try {
@@ -39,12 +45,13 @@ export class ApiClient {
     return { site, field: await decodeHeightmap16(site.heightmap_url, signal ?? new AbortController().signal), origin: 'bundled' };
   }
 
-  async loadSite(id: string, height: 2 | 5, signal?: AbortSignal, range?: ReturnType<typeof customDateRange>, preferBundled = false): Promise<SiteAsset> {
+  async loadSite(id: string, height: 2 | 5, signal?: AbortSignal, range?: SiteRange, preferBundled = false): Promise<SiteAsset> {
     if (preferBundled && !range && OFFLINE_SITES.some(site => site === id)) return this.loadBundled(id, height, signal);
     try {
       const site = await this.backend.loadSite(id, height, signal, range);
       const timeout = AbortSignal.timeout(id.startsWith('custom_') ? 270000 : 6500);
-      const field = await decodeHeightmap16(site.heightmap_url, signal ? AbortSignal.any([signal, timeout]) : timeout);
+      const token = id.startsWith('custom_') ? this.sessionToken?.() : undefined;
+      const field = await decodeHeightmap16(site.heightmap_url, signal ? AbortSignal.any([signal, timeout]) : timeout, token);
       return { site, field, origin: 'remote' };
     } catch (error) {
       if (range || !OFFLINE_SITES.some(site => site === id) || !mayUseBundle(error, signal)) throw error;

@@ -51,3 +51,26 @@ test('registration sends the documented body; generation preserves range, height
   const abort = new AbortController(); abort.abort();
   await assert.rejects(api.loadSite('custom_test', 2, abort.signal), { name: 'AbortError' });
 });
+
+test('private sites use the current bearer token while the public catalog stays anonymous', async t => {
+  const calls: { url: string; init?: RequestInit }[] = [];
+  t.mock.method(globalThis, 'fetch', async (url: string, init?: RequestInit) => {
+    calls.push({ url, init });
+    return url.includes('?') ? new Response(null, { status: 422 }) : Response.json([]);
+  });
+  let token: string | undefined = 'session-for-test';
+  const api = new BackendClient('/api', 6500, () => token);
+  await api.listSites();
+  await api.listSavedSites();
+  const range = customDateRange(Date.parse('2026-11-14T21:07:32Z'));
+  await assert.rejects(api.loadSite('custom_test', 5, undefined, { ...range, step_hours: 2 }), BackendError);
+  assert.equal(new Headers(calls[0].init?.headers).has('Authorization'), false);
+  for (const request of calls.slice(1)) {
+    assert.equal(new Headers(request.init?.headers).get('Authorization'), 'Bearer session-for-test');
+    assert.equal(request.init?.cache, 'no-store');
+  }
+  assert.equal(new URL(calls[2].url, 'http://localhost').searchParams.get('step_hours'), '2');
+  token = undefined;
+  assert.deepEqual(await api.listSavedSites(), []);
+  assert.equal(calls.length, 3);
+});

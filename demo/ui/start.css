@@ -72,8 +72,8 @@
   object-fit: contain;
   pointer-events: none;
   opacity: 0;
-  mix-blend-mode: screen;
 }
+.start-menu__logo-video { mix-blend-mode: screen; }
 
 .start-menu[data-logo-ready] .start-menu__logo-still { opacity: 1; }
 .start-menu:is([data-logo-ready], [data-logo-playing]) .start-menu__lockup { opacity: 0; }

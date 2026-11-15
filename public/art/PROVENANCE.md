@@ -1,6 +1,6 @@
 The start screen backdrop and the astronaut were made with built-in ImageGen. The WebP astronaut preserves alpha. The user's attached Light&Link reference informed the first illustration, from which both shipped assets were derived.
 
-`start-logo.mp4` comes from the user-supplied `Light & link animacion logo.mp4`. The app version crops the surrounding black space and trims the initial black frames for inline playback on the start screen. `start-logo-still.webp` is the final frame of that same clip and holds the logo in place after playback.
+`start-logo.mp4` comes from the user-supplied `Light & link animacion logo.mp4`. The app version crops the surrounding black space and trims the initial black frames for inline playback on the start screen. `start-logo-still.webp` is the final frame with the black background removed into an alpha channel.
 
 ## Prompts
 

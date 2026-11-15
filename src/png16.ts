@@ -1,5 +1,5 @@
 import { decode } from 'fast-png';
-import type { HeightDecoder, HeightField } from './terrain.js';
+import type { HeightField } from './terrain.js';
 
 /** Reads uint16 directly; never passes scientific heights through an 8-bit canvas. */
 export function decodePng16(bytes: Uint8Array): HeightField {
@@ -10,10 +10,10 @@ export function decodePng16(bytes: Uint8Array): HeightField {
   return { width: image.width, height: image.height, values };
 }
 
-export const decodeHeightmap16: HeightDecoder = async (url, signal) => {
-  const response = await fetch(url, { signal });
+export async function decodeHeightmap16(url: string, signal: AbortSignal, token?: string): Promise<HeightField> {
+  const response = await fetch(url, { signal, ...(token ? { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' } : {}) });
   if (!response.ok) throw new Error(`Heightmap HTTP ${response.status}`);
   const bytes = new Uint8Array(await response.arrayBuffer());
   signal.throwIfAborted();
   return decodePng16(bytes);
-};
+}

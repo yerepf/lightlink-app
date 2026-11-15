@@ -13,6 +13,6 @@ La presentación del Planner mantiene el carácter de un instrumento científico
 - Mostrar la procedencia de los datos y distinguir las series de la API, las copias incluidas, los cálculos de horizonte local y la demo simulada. Un valor ausente no es una medición.
 - Las duraciones se estiman a partir de las muestras de visibilidad, sin interpolar estados booleanos. El modo en vivo depende de efemérides reales y cobertura para la hora actual.
 - El análisis de una reubicación se limita al parche de elevación disponible. La visibilidad DTE es geométrica; la batería es simulada. El resultado no certifica una misión real.
-- El registro de un punto mediante una API compatible no implica que estén listos sus datos. La descarga del análisis activo se genera en el navegador; el demo no ofrece cuentas, gestión de equipos ni persistencia de escenarios.
+- El registro de un punto mediante una API compatible no implica que estén listos sus datos. Mission Planner usa las cuentas del backend para guardar misiones e invitar colaboradores. La configuración guardada incluye los sitios y la ventana de análisis. El movimiento del lander y la descarga del análisis activo se procesan en el navegador.
 
 [README_UI.md](README_UI.md) explica cómo usar y ejecutar ambos modos. [DESIGN.md](DESIGN.md) conserva el sistema visual del Planner.

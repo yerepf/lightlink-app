@@ -17,7 +17,8 @@ The campaign uses the bundled `Site07` dataset. An astronaut speaks from the lef
 
 The HUD shows UTC, Sun and Earth visibility, and simulated battery. Open **Details** for coverage, terrain diagnostics, elevation plots, and **Export CSV** or **Export JSON**. CSV contains the active windows. JSON also contains totals, the horizon profile, and timeline samples.
 
-- **Relocate.** Select **Activate relocation** under **Lunar site**. Click or tap a terrain point, or use arrow keys and **Enter**. Press **Escape** to exit. The map shows slopes below 10° in green, 10°–15° in amber, and above 15° in red.
+- **Relocate.** Select **Move lander** above the timeline, or **Activate relocation** under **Lunar site**. Click or tap a terrain point, or use arrow keys and **Enter**. Press **Escape** to exit. The map shows slopes below 10° in green, 10°–15° in amber, and above 15° in red.
+- **Collaborate.** Open **Missions** above the timeline to sign in or create an account. Save a mission with its sites, UTC window, observer height, and sampling step. Owners can invite registered planners by email. Invitees accept or decline in their **Missions** inbox. Accepted collaborators can load and edit the saved configuration. Each lander move applies to the current view.
 - **Compare.** Select two sites or compare the active point with another site. The default time window uses overlapping coverage. To compare dates, enter two UTC start times and a shared duration. The results include Sun visibility, direct-to-Earth visibility, co-visibility, data sources and the share of the terrain patch below 10°.
 - **Scrub time.** Drag the playhead or step through samples with the arrow keys. Hold **Shift** for ten-sample steps. **Home** and **End** jump to the edges. Use the wheel or **+** and **−** to zoom. Live mode requires real ephemerides that cover the current time.
 
@@ -31,6 +32,6 @@ The bundled data includes 2 m and 5 m observer profiles for `Site01` and `Site07
 
 Relocation uses slopes from the unexaggerated terrain and traces 360 rays within the original elevation patch. It retains the base site's JPL Horizons angles. The recomputation costs O(360 × samples per ray + timeline samples). Lookup in a regular horizon profile is O(1). Visibility durations hold each Boolean value until the next sample. DTE measures geometric line of sight, and the battery model is simulated.
 
-**New site** requires a backend that accepts `POST /sites`. The local backend uses Redis for registration and returns `pending_data` while site data is still missing.
+**New site** requires a planner account and a backend with the authenticated `POST /sites` and site generation routes. Shared missions require the accounts and missions endpoints backed by PostgreSQL. The public Planner and bundled datasets remain accessible as a guest.
 
 `npm test` runs the tests. `npm run build` checks TypeScript and bundles the app.

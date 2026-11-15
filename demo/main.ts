@@ -4,7 +4,7 @@ import type { LandingPoint } from '../src/LunarEngine';
 import type { SiteData, TimeState } from '../src/data';
 import { coverage } from '../src/missionMetrics';
 import { LiveClock } from '../src/LiveClock';
-import { BackendError, customDateRange, validateCoordinates, type NewSite } from '../src/backend';
+import { BackendError, customDateRange, validateCoordinates, type NewSite, type SiteRange } from '../src/backend';
 import { announce, el, formatSigned, formatUtc, isMobileViewport, setText, clamp } from './ui/dom';
 import { icon } from './ui/icons';
 import { AccordionSection } from './ui/components/AccordionSection';
@@ -19,7 +19,9 @@ import { Switch } from './ui/components/Switch';
 import { CompassWidget } from './ui/CompassWidget';
 import { TimelineWidget } from './ui/TimelineWidget';
 import { headingFromDirection, trueHeading } from './ui/compassMath';
-import { ApiClient, OFFLINE_SITES, TRAINING_SITE, type SiteAsset } from './apiClient';
+import { API_BASE, ApiClient, OFFLINE_SITES, TRAINING_SITE, type SiteAsset } from './apiClient';
+import { PlannerApi, type Mission } from './plannerApi';
+import { PlannerMissions } from './ui/PlannerMissions';
 import { ExplorerStoryMode } from './ui/ExplorerStoryMode';
 import { SiteComparator } from './ui/SiteComparator';
 import { angleChart, downloadAnalysis } from './ui/MissionAnalysis';
@@ -66,8 +68,13 @@ const modeSwitch = byId<HTMLAnchorElement>('mode-switch');
 const storyReset = byId<HTMLButtonElement>('story-reset');
 const compareOpen = byId<HTMLButtonElement>('compare-open');
 const relocateFeedback = byId('relocate-feedback');
+const plannerTools = byId('planner-tools');
+const activeMissionName = byId('active-mission-name');
+const moveLander = byId<HTMLButtonElement>('move-lander');
+const openMissions = byId<HTMLButtonElement>('open-missions');
 
-const api = new ApiClient();
+const accounts = new PlannerApi(API_BASE);
+const api = new ApiClient(() => accounts.token);
 const liveClock = new LiveClock();
 const customRanges = new Map<string, ReturnType<typeof customDateRange>>();
 
@@ -77,6 +84,8 @@ let activeAsset: SiteAsset | undefined;
 let landing: LandingPoint | undefined;
 let mode: 'explorer' | 'planner' | undefined;
 let relocating = false;
+let activeMission: Mission | undefined;
+let plannerSiteOptions: { id: string; label: string }[] = [];
 let catalogOffline = false;
 let campaignRun = 0;
 let catalogRequest: AbortController | undefined;
@@ -440,11 +449,34 @@ const comparator = new SiteComparator(appShell, async (id, abort) => {
   if (id === '@current' && activeAsset && siteData) return { ...activeAsset, site: siteData, origin: landing && activeAsset.origin !== 'mock' ? 'local' : activeAsset.origin };
   if (id === 'MOCK') return { ...createMockSite(), origin: 'mock' };
   if (id.startsWith('custom_') && !customRanges.has(id)) customRanges.set(id, customDateRange(currentTime));
-  return api.loadSite(id, Number(lastHeight) as 2 | 5, abort, customRanges.get(id), mode === 'explorer' || catalogOffline);
+  return api.loadSite(id, Number(lastHeight) as 2 | 5, abort, selectedRange(id), mode === 'explorer' || catalogOffline);
 }, recommendation => story.compared(recommendation));
+
+const missions = new PlannerMissions(accounts, appShell, {
+  sites: () => plannerSiteOptions.length ? [...plannerSiteOptions] : Array.from(siteSelect.select.options).filter(option => !option.disabled && option.value !== 'MOCK')
+    .map(option => ({ id: option.value, label: option.text })),
+  draft: () => {
+    const range = siteData ? coverage(siteData.ephemeris_timeline) : undefined;
+    const useRange = range && lastSelection !== 'MOCK' && range.end - range.start >= 3600000 && range.end - range.start <= 62 * 86400000;
+    const dates = useRange ? { start_utc: new Date(range.start).toISOString(), end_utc: new Date(range.end).toISOString() } : customDateRange(currentTime);
+    return { ...dates, site_ids: lastSelection && lastSelection !== 'MOCK' ? [lastSelection] : [TRAINING_SITE], observer_height_m: Number(lastHeight) };
+  },
+  sessionChanged: () => {
+    if (!accounts.token) {
+      customRanges.clear();
+      if (activeMission || lastSelection.startsWith('custom_') || siteSelect.value.startsWith('custom_')) leaveMission(true);
+    }
+    void fetchCatalog();
+  },
+  activeMission: () => activeMission,
+  openMission: activateMission,
+  leaveMission: () => leaveMission(),
+});
 
 listen(compareOpen, 'click', openComparator);
 listen(storyReset, 'click', restartStory);
+listen(openMissions, 'click', () => missions.open());
+listen(moveLander, 'click', () => { setStatusOpen(false); setRelocating(!relocating); });
 
 function setPanelOpen(open: boolean): void {
   controlPanel.dataset.open = String(open);
@@ -486,10 +518,11 @@ function sourceLabel(): string {
 
 function setFormDisabled(disabled: boolean): void {
   siteSelect.setDisabled(disabled);
-  heightSelect.setDisabled(disabled);
-  for (const field of [coordinateName, coordinateLat, coordinateLon]) field.setDisabled(disabled);
-  coordinateSubmit.setDisabled(disabled);
+  heightSelect.setDisabled(disabled || !!activeMission);
+  for (const field of [coordinateName, coordinateLat, coordinateLon]) field.setDisabled(disabled || !!activeMission);
+  coordinateSubmit.setDisabled(disabled || !!activeMission);
   relocateButton.setDisabled(disabled || !siteData);
+  moveLander.disabled = disabled || !siteData;
   compareOpen.disabled = disabled || !siteData;
 }
 
@@ -747,19 +780,22 @@ function setRelocating(enabled: boolean) {
   relocating = enabled && !loading && !!siteData;
   relocateButton.setPressed(relocating);
   relocateButton.setLabel(relocating ? 'Exit relocation' : 'Activate relocation');
+  moveLander.textContent = relocating ? 'Cancel move' : 'Move lander';
+  moveLander.setAttribute('aria-pressed', String(relocating));
   viewport.classList.toggle('is-relocating', relocating);
   viewport.tabIndex = relocating ? 0 : -1;
   relocateFeedback.hidden = !relocating;
+  activeMissionName.hidden = relocating || !activeMission;
   story.relocationActive(relocating);
   keyboardPoint = undefined;
   pointerPosition = undefined;
   delete relocateFeedback.dataset.safe;
   if (!relocating) { engine?.previewLandingPoint(); return; }
   setSlopeOverlay(true);
-  if (viewMode !== 'top' && viewMode !== 'orbital') setView('top');
+  if (viewMode !== 'top') setView('top');
   if (isMobileViewport()) setPanelOpen(false);
   const tip = 'Choose a green point · arrow keys and Enter';
-  relocateFeedback.textContent = tip;
+  relocateFeedback.textContent = isMobileViewport() ? 'Tap a point on the map' : 'Select a point on the map · arrows and Enter also work';
   story.cursorReadout(isMobileViewport() ? 'Tap a green point on the map.' : tip);
   viewport.focus({ preventScroll: true });
 }
@@ -800,7 +836,7 @@ function pickLanding(x: number, y: number) {
     setRelocating(false);
     story.landing(point.slopeDeg);
     if (story.step === 2) byId('story-mount').querySelector<HTMLButtonElement>('button:not([disabled])')?.focus();
-    else relocateButton.root.focus({ preventScroll: true });
+    else if (mode === 'planner') moveLander.focus({ preventScroll: true });
   } catch (error) { showError(error); }
 }
 
@@ -838,7 +874,7 @@ listen(viewport, 'keydown', event => {
   if (e.key === 'Escape') {
     e.preventDefault(); setRelocating(false);
     if (story.step === 2) { story.message(''); byId('story-mount').querySelector<HTMLButtonElement>('[data-story-relocate]')?.focus(); }
-    else relocateButton.root.focus();
+    else if (mode === 'planner') moveLander.focus();
     return;
   }
   const rect = viewport.getBoundingClientRect();
@@ -908,7 +944,8 @@ function restartStory() {
 
 function submitCoordinates(event: SubmitEvent): void {
   event.preventDefault();
-  if (loading) return;
+  if (loading || activeMission) return;
+  if (!accounts.token) { missions.open(); return; }
   const valid = [coordinateName, coordinateLat, coordinateLon].map(field => field.validateNow());
   if (valid.includes(false)) {
     const first = [coordinateName, coordinateLat, coordinateLon][valid.indexOf(false)];
@@ -946,7 +983,6 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
   timeline.setEnabled(false);
 
   let phase = coordinates ? 'Registering coordinates' : 'Loading site';
-  let keepProgress = false;
   const began = Date.now();
   const report = () => {
     loadProgress.textContent = `${phase} · ${Math.floor((Date.now() - began) / 1000)} s. A new site can take up to four minutes.`;
@@ -962,15 +998,7 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
       selected = registered.site_id;
       const exists = Array.from(siteSelect.select.options).some(option => option.value === selected);
       if (!exists) siteSelect.select.add(new Option(registered.name ?? selected, selected));
-      if (registered.status === 'pending_data') {
-        const option = Array.from(siteSelect.select.options).find(item => item.value === selected)!;
-        option.textContent = `${registered.name ?? selected} (awaiting data)`; option.disabled = true;
-        const message = `The server registered ${registered.name ?? selected}. Terrain and ephemerides are still pending for this site.`;
-        loadProgress.textContent = message;
-        keepProgress = true;
-        announce(message);
-        return true;
-      }
+      if (!plannerSiteOptions.some(site => site.id === selected)) plannerSiteOptions.push({ id: selected, label: registered.name ?? selected });
       siteSelect.setValue(selected);
       customRanges.set(selected, customDateRange(liveClock.followNow ? Date.now() : currentTime));
     }
@@ -982,7 +1010,7 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
     report();
     if (!engine) throw new Error('The 3D engine is unavailable.');
     const mock = selected === 'MOCK' ? createMockSite() : undefined;
-    const asset: SiteAsset = mock ? { ...mock, origin: 'mock' } : await api.loadSite(selected, Number(selectedHeight) as 2 | 5, active.signal, customRanges.get(selected), preferBundled);
+    const asset: SiteAsset = mock ? { ...mock, origin: 'mock' } : await api.loadSite(selected, Number(selectedHeight) as 2 | 5, active.signal, selectedRange(selected), preferBundled);
     const { site, field } = asset;
     if (disposed || active.signal.aborted) return false;
 
@@ -994,6 +1022,7 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
 
     siteData = site;
     activeAsset = asset;
+    appShell.classList.remove('clearing-private-site');
     landing = undefined;
     const start = Date.parse(site.ephemeris_timeline[0].timestamp_utc);
     const end = Date.parse(site.ephemeris_timeline.at(-1)!.timestamp_utc);
@@ -1046,7 +1075,7 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
     if (!disposed && request === active) {
       setFormDisabled(false);
       cancelLoad.root.hidden = true;
-      loadProgress.hidden = !active.signal.aborted && !keepProgress;
+      loadProgress.hidden = !active.signal.aborted;
       loading = false;
       timeline.setEnabled(!!siteData);
       refreshLive();
@@ -1060,24 +1089,90 @@ const bundledOptions = [
 ];
 
 async function fetchCatalog(): Promise<void> {
+  if (activeMission && mode === 'planner') return;
   catalogRequest?.abort();
   const active = catalogRequest = new AbortController();
   try {
-    const { sites, offline } = await api.listSites(active.signal);
+    const [{ sites, offline }, saved] = await Promise.all([
+      api.listSites(active.signal),
+      mode === 'planner' ? api.listSavedSites(active.signal).catch(() => []) : Promise.resolve([]),
+    ]);
     if (disposed || active.signal.aborted) return;
     catalogOffline = offline;
     const previous = siteSelect.value || TRAINING_SITE;
-    const options = sites.map(item => {
+    const options = [...sites, ...saved.filter(item => !sites.some(site => site.site_id === item.site_id))].map(item => {
       const label = item.name ?? item.site_id;
       const pending = item.status === 'pending_data';
       return { value: item.site_id, label: pending ? `${label} (awaiting data)` : label, disabled: pending };
     });
-    for (const option of Array.from(siteSelect.select.options)) if (customRanges.has(option.value) && !options.some(r => r.value === option.value)) {
+    for (const option of Array.from(siteSelect.select.options)) if (mode === 'planner' && accounts.token && customRanges.has(option.value) && !options.some(r => r.value === option.value)) {
       options.push({ value: option.value, label: option.textContent ?? option.value, disabled: option.disabled });
     }
+    if (mode === 'planner') plannerSiteOptions = options.filter(option => !option.disabled).map(option => ({ id: option.value, label: option.label }));
     siteSelect.setOptions([...options, bundledOptions.at(-1)!], previous);
   } catch {
     if (!active.signal.aborted) catalogOffline = true;
+  }
+}
+
+function selectedRange(id: string): SiteRange | undefined {
+  if (mode === 'planner' && activeMission?.site_ids.includes(id)) {
+    return { start_utc: activeMission.start_utc, end_utc: activeMission.end_utc, step_hours: activeMission.step_hours ?? 1 };
+  }
+  return customRanges.get(id);
+}
+
+function setActiveMission(mission?: Mission) {
+  activeMission = mission;
+  activeMissionName.textContent = mission?.name ?? '';
+  activeMissionName.title = mission?.name ?? '';
+  activeMissionName.hidden = !mission;
+  openMissions.title = mission ? `Active mission: ${mission.name}` : '';
+}
+
+async function activateMission(mission: Mission) {
+  if (mode !== 'planner' || !accounts.token) return;
+  catalogRequest?.abort();
+  const previous = {
+    mission: activeMission,
+    options: Array.from(siteSelect.select.options, option => ({ value: option.value, label: option.text, disabled: option.disabled })),
+    site: siteSelect.value,
+    height: heightSelect.value,
+    time: currentTime,
+    followNow: liveClock.followNow,
+  };
+  setActiveMission(mission);
+  siteSelect.setOptions(mission.site_ids.map(id => ({ value: id, label: mission.sites.find(site => site.site_id === id)?.name ?? id })), mission.site_ids[0]);
+  heightSelect.setValue(String(mission.observer_height_m ?? 2));
+  liveClock.followNow = false;
+  currentTime = Date.parse(mission.start_utc);
+  announce(`Loading ${mission.name}.`);
+  if (await loadSelected(undefined, mission.site_ids[0], false) || activeMission !== mission) return;
+  setActiveMission(previous.mission);
+  siteSelect.setOptions(previous.options, previous.site);
+  heightSelect.setValue(previous.height);
+  updateAt(previous.time);
+  liveClock.followNow = previous.followNow;
+  setFormDisabled(false);
+  refreshLive();
+  // Reload the mission scope and its range if the user retries from the toast.
+  retryAction = () => activateMission(mission);
+}
+
+function leaveMission(discardSite = false) {
+  setActiveMission();
+  siteSelect.setOptions(bundledOptions, TRAINING_SITE);
+  if (discardSite) {
+    plannerSiteOptions = [];
+    appShell.classList.add('clearing-private-site');
+    siteData = undefined; activeAsset = undefined; landing = undefined; lastSelection = '';
+    siteDetail.textContent = 'Loading a public site…';
+    statusSubtitle.textContent = 'Loading a public site…';
+    setStatusOpen(false); comparator.close();
+  }
+  if (mode === 'planner') {
+    void loadSelected(undefined, TRAINING_SITE, discardSite);
+    void fetchCatalog();
   }
 }
 
@@ -1100,11 +1195,14 @@ export function setMode(next: 'explorer' | 'planner') {
   modeSwitch.href = next === 'explorer' ? '#planner' : '#explorer';
   modeSwitch.textContent = next === 'explorer' ? 'Mission Planner' : 'Explorer';
   storyReset.hidden = next !== 'explorer';
+  plannerTools.hidden = next !== 'planner';
   setPanelOpen(next === 'planner' && !isMobileViewport());
   setStatusOpen(false);
   setRelocating(false);
   comparator.close();
   if (next === 'explorer') {
+    missions.close();
+    if (activeMission) leaveMission();
     if (!catalogRequest) void fetchCatalog();
     story.start();
   } else {
@@ -1119,6 +1217,7 @@ export function setMode(next: 'explorer' | 'planner') {
 
 export function setExplorerVisibility(visible: boolean) {
   story.setPageVisible(visible && !appShell.hidden && !document.hidden);
+  if (appShell.hidden) missions.close();
 }
 
 retryButton.addEventListener('click', () => void retryAction(), { signal });
@@ -1140,7 +1239,7 @@ if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     disposed = true;
     request?.abort();
-    catalogRequest?.abort(); comparator.close(); story.close();
+    catalogRequest?.abort(); comparator.close(); story.close(); missions.close();
     storyTimelineSize.disconnect();
     if (cursorFrame) cancelAnimationFrame(cursorFrame);
     window.clearInterval(compassTimer);

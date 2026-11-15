@@ -59,13 +59,17 @@ export function customDateRange(at: number) {
 export class BackendError extends Error {
   constructor(readonly status: number, message: string) { super(message); }
 }
+export type SiteRange = ReturnType<typeof customDateRange> & { step_hours?: number };
 export class BackendClient {
-  constructor(readonly baseUrl = '/api', private readonly readTimeoutMs = 270000) {}
+  constructor(readonly baseUrl = '/api', private readonly readTimeoutMs = 270000, private readonly sessionToken?: () => string | undefined) {}
   private async get(path: string, signal?: AbortSignal, body?: unknown): Promise<unknown> {
     const timeout = AbortSignal.timeout(body === undefined && !path.startsWith('/sites/custom_') ? this.readTimeoutMs : 270000);
+    const token = (body !== undefined || path.startsWith('/sites/custom_') || path === '/me/sites') ? this.sessionToken?.() : undefined;
     const response = await fetch(this.baseUrl.replace(/\/$/, '') + path, {
       signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
-      ...(body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+      ...(token ? { cache: 'no-store' } : {}),
+      ...(body !== undefined || token ? { headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) } } : {}),
+      ...(body === undefined ? {} : { method: 'POST', body: JSON.stringify(body) }),
     });
     if (!response.ok) {
       const body = await response.json().catch(() => null);
@@ -78,14 +82,22 @@ export class BackendClient {
     if (!Array.isArray(list) || list.some(s => !s || typeof s.site_id !== 'string')) throw new Error('API: invalid site catalog');
     return list;
   }
+  async listSavedSites(signal?: AbortSignal): Promise<BackendSiteSummary[]> {
+    if (!this.sessionToken?.()) return [];
+    const list = await this.get('/me/sites', signal);
+    if (!Array.isArray(list) || list.some(s => !s || typeof s.site_id !== 'string')) throw new Error('API: invalid saved site catalog');
+    return list;
+  }
   async registerSite(input: NewSite, signal?: AbortSignal): Promise<BackendSiteSummary> {
     const value = validateCoordinates(input);
     const result = record(await this.get('/sites', signal, { name: value.name, coordinates: { latitude: value.latitude, longitude: value.longitude } }), 'registered site');
     if (typeof result.site_id !== 'string' || !/^[A-Za-z0-9_-]+$/.test(result.site_id)) throw new Error('API: invalid site ID');
     return { site_id: result.site_id, name: value.name, status: typeof result.status === 'string' ? result.status : undefined };
   }
-  async loadSite(id: string, height: 2 | 5 = 2, signal?: AbortSignal, range?: ReturnType<typeof customDateRange>): Promise<SiteData> {
-    const query = new URLSearchParams({ observer_height_m: String(height), ...range });
+  async loadSite(id: string, height: 2 | 5 = 2, signal?: AbortSignal, range?: SiteRange): Promise<SiteData> {
+    const query = new URLSearchParams({ observer_height_m: String(height) });
+    if (range) { query.set('start_utc', range.start_utc); query.set('end_utc', range.end_utc); }
+    if (range?.step_hours !== undefined) query.set('step_hours', String(range.step_hours));
     return adaptBackendSite(await this.get(`/sites/${encodeURIComponent(id)}?${query}`, signal), this.baseUrl);
   }
 }
