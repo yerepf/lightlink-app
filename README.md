@@ -1,5 +1,11 @@
 ## Backend remoto
 
+### Despliegue en Vercel
+
+Importa el repositorio con Root Directory en la raíz (`./`). `vercel.json` selecciona Vite, ejecuta `npm ci` y `npm run build`, y publica **`dist-demo`**, que contiene la aplicación y su `index.html`. `dist` contiene solamente la biblioteca JavaScript y no es el sitio web.
+
+La regla `/api/:path*` reenvía las consultas al backend remoto, incluidos registro de coordenadas y heightmaps dinámicos. El proxy de desarrollo de Vite no se ejecuta en Vercel. Después de cambiar la configuración, despliega el último commit. Si ves instrucciones `export` como texto, comprueba que estás abriendo la raíz del sitio y no un archivo de la biblioteca.
+
 El frontend usa por defecto `https://backend.lightlink.club` mediante el proxy `/api`.
 
 - `npm run dev`: abre Vite conectado al backend remoto; no requiere instalar ni ejecutar el backend local.
