@@ -33,8 +33,8 @@ export class CompassWidget {
   constructor(mount: HTMLElement, signal?: AbortSignal) {
     mount.replaceChildren();
     this.tooltip = new Tooltip();
-    this.sunLabel = 'Sol';
-    this.earthLabel = 'Tierra';
+    this.sunLabel = 'Sun';
+    this.earthLabel = 'Earth';
 
     this.ticks = svgEl('g', { class: 'compass__ticks', 'aria-hidden': 'true' });
     for (let i = 0; i < 36; i++) {
@@ -65,8 +65,8 @@ export class CompassWidget {
     }, 'N');
     this.north = svgEl('g', { class: 'compass__north' }, northBackground, northText);
 
-    this.sun = this.createBody('sun', 'Sol');
-    this.earth = this.createBody('earth', 'Tierra');
+    this.sun = this.createBody('sun', 'Sun');
+    this.earth = this.createBody('earth', 'Earth');
 
     const arrow = svgEl('path', {
       class: 'compass__arrow',
@@ -80,7 +80,7 @@ export class CompassWidget {
         class: 'compass__dial',
         viewBox: '0 0 120 120',
         role: 'img',
-        'aria-label': 'Brújula HUD con norte, Sol y Tierra',
+        'aria-label': 'Compass showing north, the Sun and Earth',
       },
       svgEl('circle', { class: 'compass__ring', cx: CENTER, cy: CENTER, r: 52 }),
       svgEl('circle', { class: 'compass__ring-inner', cx: CENTER, cy: CENTER, r: 41 }),
@@ -96,8 +96,8 @@ export class CompassWidget {
     const legend = el(
       'div',
       { class: 'compass__legend' },
-      el('span', { class: 'compass__legend-item' }, el('span', { class: 'compass__legend-dot compass__legend-dot--sun' }), 'Sol'),
-      el('span', { class: 'compass__legend-item' }, el('span', { class: 'compass__legend-dot compass__legend-dot--earth' }), 'Tierra'),
+      el('span', { class: 'compass__legend-item' }, el('span', { class: 'compass__legend-dot compass__legend-dot--sun' }), 'Sun'),
+      el('span', { class: 'compass__legend-item' }, el('span', { class: 'compass__legend-dot compass__legend-dot--earth' }), 'Earth'),
       el('span', { class: 'compass__legend-item' }, 'N'),
     );
 
@@ -169,10 +169,10 @@ export class CompassWidget {
     node.classList.toggle('is-below', !body.aboveHorizon);
     node.classList.toggle('is-visible', body.aboveHorizon);
     const name = node === this.sun ? this.sunLabel : this.earthLabel;
-    const status = body.aboveHorizon ? 'sobre el horizonte estimado' : 'bajo el horizonte estimado';
+    const status = body.aboveHorizon ? 'above the estimated horizon' : 'below the estimated horizon';
     node.setAttribute(
       'aria-label',
-      `${name}. Azimut ${body.azimuth_deg.toFixed(1)} grados, elevación ${body.elevation_deg.toFixed(1)} grados. ${status}.`,
+      `${name}. Azimuth ${body.azimuth_deg.toFixed(1)} degrees, elevation ${body.elevation_deg.toFixed(1)} degrees. ${status}.`,
     );
   }
 
@@ -180,8 +180,8 @@ export class CompassWidget {
     const show = () => {
       const body = node === this.sun ? this.lastState?.sun : this.lastState?.earth;
       if (!body) return;
-      const status = body.aboveHorizon ? 'Sobre horizonte estimado' : 'Bajo horizonte estimado';
-      const backend = body.backendVisible ? 'visible' : 'oculto';
+      const status = body.aboveHorizon ? 'Above the estimated horizon' : 'Below the estimated horizon';
+      const backend = body.backendVisible ? 'visible' : 'obscured';
       this.tooltip.show(
         node,
         `${name}\nAz ${body.azimuth_deg.toFixed(1)}° · El ${body.elevation_deg.toFixed(1)}°\n${status}\nMuestra backend: ${backend}`,

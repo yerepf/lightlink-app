@@ -99,27 +99,27 @@ const up = new Vector3();
 
 const siteSelect = new Select({
   id: 'site',
-  label: 'Sitio lunar',
+  label: 'Lunar site',
   disabled: true,
   signal,
   onChange: () => void loadSelected(),
 });
 const heightSelect = new Select({
   id: 'height',
-  label: 'Altura del observador',
+  label: 'Observer height',
   options: [
     { value: '2', label: '2 m' },
-    { value: '5', label: '5 m (aproximación)' },
+    { value: '5', label: '5 m (approximate)' },
   ],
   value: '2',
   disabled: true,
   signal,
   onChange: () => void loadSelected(),
 });
-const siteDetail = el('p', { class: 'ui-note', id: 'detail' }, 'Selecciona un sitio para cargar terreno y efemérides.');
+const siteDetail = el('p', { class: 'ui-note', id: 'detail' }, 'Select a site to load terrain and ephemerides.');
 const loadProgress = el('p', { class: 'ui-note', id: 'load-progress', hidden: true });
 const cancelLoad = new Button({
-  label: 'Cancelar espera',
+  label: 'Cancel loading',
   variant: 'ghost',
   size: 'sm',
   block: true,
@@ -129,25 +129,25 @@ const cancelLoad = new Button({
 cancelLoad.root.id = 'cancel-load';
 cancelLoad.root.hidden = true;
 
-const siteSection = new AccordionSection({ id: 'section-site', title: 'Sitio lunar', iconName: 'site', open: true, signal });
+const siteSection = new AccordionSection({ id: 'section-site', title: 'Lunar site', iconName: 'site', open: true, signal });
 siteSection.append(siteSelect.root, heightSelect.root, siteDetail, loadProgress, cancelLoad.root);
 
 const viewControl = new SegmentedControl({
-  label: 'Modo de vista',
+  label: 'Camera view',
   value: 'surface',
   signal,
   items: [
-    { value: 'surface', label: 'Superficie', iconName: 'surface', description: 'Cámara fija a la altura del observador' },
-    { value: 'lander', label: 'Lander', iconName: 'lander', description: 'Inspección del módulo de aterrizaje' },
-    { value: 'globe', label: 'Globo', iconName: 'globe', description: 'Contexto global de la Luna' },
-    { value: 'top', label: 'Mapa', iconName: 'top', description: 'Vista topográfica con norte arriba' },
-    { value: 'cinematic', label: 'Cine', iconName: 'cinematic', description: 'Recorrido cinematográfico' },
-    { value: 'orbital', label: 'Órbita', iconName: 'orbital', description: 'Vista orbital del terreno' },
+    { value: 'surface', label: 'Surface', iconName: 'surface', description: 'Fixed camera at observer height' },
+    { value: 'lander', label: 'Lander', iconName: 'lander', description: 'Inspect the lander' },
+    { value: 'globe', label: 'Globe', iconName: 'globe', description: 'View the whole Moon' },
+    { value: 'top', label: 'Map', iconName: 'top', description: 'North-up topographic view' },
+    { value: 'cinematic', label: 'Flyover', iconName: 'cinematic', description: 'Cinematic flyover' },
+    { value: 'orbital', label: 'Orbit', iconName: 'orbital', description: 'Orbital view of the terrain' },
   ],
   onChange: value => setView(value as typeof viewMode),
 });
 const cinematicPause = new Button({
-  label: 'Pausar vuelo',
+  label: 'Pause flyover',
   variant: 'secondary',
   size: 'sm',
   iconName: 'pause',
@@ -156,7 +156,7 @@ const cinematicPause = new Button({
   onClick: () => {
     const paused = cinematicPause.root.getAttribute('aria-pressed') !== 'true';
     cinematicPause.setPressed(paused);
-    cinematicPause.setLabel(paused ? 'Reanudar vuelo' : 'Pausar vuelo');
+    cinematicPause.setLabel(paused ? 'Resume flyover' : 'Pause flyover');
     engine?.setCinematicPaused(paused);
   },
 });
@@ -165,7 +165,7 @@ cinematicPause.root.hidden = true;
 
 const exaggeration = new Slider({
   id: 'exaggeration',
-  label: 'Exageración del relieve',
+  label: 'Terrain exaggeration',
   min: 1,
   max: 15,
   step: 1,
@@ -178,34 +178,34 @@ const exaggeration = new Slider({
 });
 const guidesSwitch = new Switch({
   id: 'guides',
-  label: 'Guías de referencia',
-  description: 'Rayo solar, observador y horizonte',
+  label: 'Reference guides',
+  description: 'Sun ray, observer and horizon',
   signal,
   onChange: checked => engine?.setGuidesVisible(checked),
 });
 const effectsSwitch = new Switch({
   id: 'effects',
-  label: 'Efectos visuales',
-  description: 'Pulses RF, bloom e incidencia solar',
+  label: 'Visual effects',
+  description: 'RF pulses, bloom and solar incidence',
   checked: true,
   signal,
   onChange: checked => engine?.setVisualEffectsEnabled(checked),
 });
 
-const viewSection = new AccordionSection({ id: 'section-view', title: 'Vista y presentación', iconName: 'view', open: true, signal });
+const viewSection = new AccordionSection({ id: 'section-view', title: 'View and display', iconName: 'view', open: true, signal });
 viewSection.append(viewControl.root, cinematicPause.root, exaggeration.root, guidesSwitch.root, effectsSwitch.root);
 
 const slopeSwitch = new Switch({
   id: 'slope-hazard',
-  label: 'Riesgo de pendiente',
-  description: 'Colorea pendientes suaves, moderadas y altas',
+  label: 'Slope hazards',
+  description: 'Color-code gentle, moderate and steep slopes',
   signal,
   onChange: setSlopeOverlay,
 });
 const skyPathsSwitch = new Switch({
   id: 'sky-paths',
-  label: 'Trayectorias Sol–Tierra',
-  description: 'Arcos analíticos sobre el cielo lunar',
+  label: 'Sun and Earth paths',
+  description: 'Calculated arcs across the lunar sky',
   signal,
   onChange: checked => {
     engine?.setSkyPathsEnabled(checked);
@@ -225,75 +225,75 @@ const slopeLegend = el(
 const pathsLegend = el(
   'div',
   { class: 'ui-legend', id: 'paths-legend', hidden: true },
-  legendItem('ui-legend__dot--sun', 'Sol'),
-  legendItem('ui-legend__dot--earth', 'Tierra'),
+  legendItem('ui-legend__dot--sun', 'Sun'),
+  legendItem('ui-legend__dot--earth', 'Earth'),
 );
 const mapLegend = el(
   'div',
   { class: 'ui-legend', id: 'map-legend', hidden: true },
-  legendItem('ui-legend__dot--horizon', 'Norte arriba · mapa topográfico'),
+  legendItem('ui-legend__dot--horizon', 'North up · topographic map'),
 );
-const layersSection = new AccordionSection({ id: 'section-layers', title: 'Capas de análisis', iconName: 'layers', open: false, signal });
+const layersSection = new AccordionSection({ id: 'section-layers', title: 'Analysis layers', iconName: 'layers', open: false, signal });
 layersSection.append(slopeSwitch.root, slopeLegend, skyPathsSwitch.root, pathsLegend, mapLegend);
-const relocateButton = new Button({ label: 'Activar reubicador', variant: 'secondary', block: true, signal, onClick: () => setRelocating(!relocating) });
+const relocateButton = new Button({ label: 'Activate relocation', variant: 'secondary', block: true, signal, onClick: () => setRelocating(!relocating) });
 relocateButton.root.id = 'relocate-toggle';
 relocateButton.setPressed(false);
 siteSection.append(relocateButton.root);
 
 const coordinateName = new InputField({
   id: 'coordinate-name',
-  label: 'Nombre del sitio',
-  placeholder: 'Ej. Cráter Shackleton',
+  label: 'Site name',
+  placeholder: 'e.g. Shackleton Crater',
   maxlength: 120,
   required: true,
   autocomplete: 'off',
   signal,
   validate: value => {
     const name = value.trim();
-    if (!name) return 'Escribe un nombre.';
-    if (name.length > 120) return 'Máximo 120 caracteres.';
+    if (!name) return 'Enter a name.';
+    if (name.length > 120) return 'Use 120 characters or fewer.';
     return undefined;
   },
 });
 const coordinateLat = new InputField({
   id: 'coordinate-lat',
-  label: 'Latitud',
+  label: 'Latitude',
   type: 'number',
   inputmode: 'decimal',
   step: 'any',
   min: -90,
   max: 90,
   placeholder: '−89.9',
-  help: 'Grados, de −90 a 90.',
+  help: 'Degrees, from −90 to 90.',
   signal,
   validate: value => {
     const number = Number(value);
-    if (!value.trim() || !Number.isFinite(number)) return 'Introduce una latitud válida.';
-    if (number < -90 || number > 90) return 'La latitud debe estar entre −90 y 90.';
+    if (!value.trim() || !Number.isFinite(number)) return 'Enter a valid latitude.';
+    if (number < -90 || number > 90) return 'Latitude must be between −90 and 90.';
     return undefined;
   },
 });
 const coordinateLon = new InputField({
   id: 'coordinate-lon',
-  label: 'Longitud',
+  label: 'Longitude',
   type: 'number',
   inputmode: 'decimal',
   step: 'any',
   min: -180,
   max: 360,
   placeholder: '0',
-  help: 'Grados, de −180 a 360.',
+  help: 'Degrees, from −180 to 360.',
   signal,
   validate: value => {
     const number = Number(value);
-    if (!value.trim() || !Number.isFinite(number)) return 'Introduce una longitud válida.';
-    if (number < -180 || number > 360) return 'La longitud debe estar entre −180 y 360.';
+    if (!value.trim() || !Number.isFinite(number)) return 'Enter a valid longitude.';
+    if (number < -180 || number > 360) return 'Longitude must be between −180 and 360.';
     return undefined;
   },
 });
 coordinateName.root.classList.add('ui-form-grid__wide');
 const coordinateSubmit = new Button({
-  label: 'Registrar coordenadas',
+  label: 'Register coordinates',
   variant: 'primary',
   type: 'submit',
   iconName: 'coordinates',
@@ -306,20 +306,20 @@ const coordinateForm = el(
   { class: 'ui-stack ui-stack--sm', id: 'coordinate-form', novalidate: true },
   el('div', { class: 'ui-form-grid' }, coordinateName.root, coordinateLat.root, coordinateLon.root),
   coordinateSubmit.root,
-  el('p', { class: 'ui-note' }, 'La generación de un punto nuevo puede tardar hasta 4 minutos. La cobertura depende de los DEM disponibles.'),
+  el('p', { class: 'ui-note' }, 'Creating a new site can take up to four minutes. Coverage depends on the available elevation models.'),
 );
-const coordinatesSection = new AccordionSection({ id: 'section-coordinates', title: 'Nuevo punto', iconName: 'coordinates', open: false, signal });
+const coordinatesSection = new AccordionSection({ id: 'section-coordinates', title: 'New site', iconName: 'coordinates', open: false, signal });
 coordinatesSection.append(coordinateForm);
 
-const infoSection = new AccordionSection({ id: 'section-info', title: 'Información', iconName: 'info', open: false, signal });
+const infoSection = new AccordionSection({ id: 'section-info', title: 'Information', iconName: 'info', open: false, signal });
 const dataSource = el(
   'p',
   { class: 'ui-note', id: 'data-source' },
-  'Terreno LOLA y efemérides JPL Horizons. Visualización geométrica; no certificada para planificación de vuelo.',
+  'LOLA terrain and JPL Horizons ephemerides. Geometric visualization for exploratory planning.',
 );
 infoSection.append(
-  el('p', { class: 'ui-note' }, 'Arrastra con el visor para orbitar. La línea de tiempo permite arrastrar para buscar, arrastrar el fondo para desplazar y usar la rueda para ampliar.'),
-  el('p', { class: 'ui-note' }, 'Separación entre centros de píxeles, horizonte y co-visibilidad proceden del conjunto entregado por el backend. El modo simulado no usa datos científicos.'),
+  el('p', { class: 'ui-note' }, 'Drag the view to orbit. Drag the playhead to scrub, drag the timeline background to pan, or scroll to zoom.'),
+  el('p', { class: 'ui-note' }, 'Pixel spacing, horizon and co-visibility come from the mission dataset. The simulation uses synthetic data.'),
   dataSource,
 );
 panelScroll.append(siteSection.root, viewSection.root, layersSection.root, coordinatesSection.root, infoSection.root);
@@ -330,23 +330,23 @@ const statusHead = el(
   el(
     'div',
     {},
-    el('h2', { class: 'status-panel__title' }, 'Estado de la misión'),
-    el('p', { class: 'status-panel__sample', id: 'status-sample' }, 'Muestra horaria —'),
+    el('h2', { class: 'status-panel__title' }, 'Mission status'),
+    el('p', { class: 'status-panel__sample', id: 'status-sample' }, 'Hourly sample —'),
   ),
 );
-const statusClose = el('button', { class: 'icon-button status-panel__close', type: 'button', 'aria-label': 'Cerrar estado' });
+const statusClose = el('button', { class: 'icon-button status-panel__close', type: 'button', 'aria-label': 'Close status panel' });
 statusClose.innerHTML = icon('close');
 statusHead.append(statusClose);
 
 const coValue = el('strong', { class: 'status-hero__value', id: 'co-visibility-value' }, '—');
-const sunChip = new Badge({ text: 'Sol —', variant: 'neutral' });
-const earthChip = new Badge({ text: 'Tierra —', variant: 'neutral' });
-const coChip = new Badge({ text: 'Co-visibilidad —', variant: 'neutral' });
+const sunChip = new Badge({ text: 'Sun —', variant: 'neutral' });
+const earthChip = new Badge({ text: 'Earth —', variant: 'neutral' });
+const coChip = new Badge({ text: 'Co-visibility —', variant: 'neutral' });
 const statusChips = el('div', { class: 'status-chips', id: 'status-chips' }, sunChip.root, earthChip.root, coChip.root);
 const statusHero = el(
   'div',
   { class: 'status-hero' },
-  el('span', { class: 'status-hero__label' }, 'Co-visibilidad Sol–Tierra'),
+  el('span', { class: 'status-hero__label' }, 'Sun–Earth co-visibility'),
   coValue,
   statusChips,
 );
@@ -358,44 +358,45 @@ function metric(label: string, id: string, wide = false): { root: HTMLElement; v
     value,
   };
 }
-const sunMetric = metric('Sol · azimut / elevación', 'metric-sun');
-const earthMetric = metric('Tierra · azimut / elevación', 'metric-earth');
-const sampleMetric = metric('Punto de muestra', 'metric-sample');
-const coverageMetric = metric('Cobertura temporal', 'metric-coverage', true);
+const sunMetric = metric('Sun · azimuth / elevation', 'metric-sun');
+const earthMetric = metric('Earth · azimuth / elevation', 'metric-earth');
+const sampleMetric = metric('Sample time', 'metric-sample');
+const coverageMetric = metric('Time coverage', 'metric-coverage', true);
 const statusGrid = el('div', { class: 'status-grid' }, sunMetric.root, earthMetric.root, sampleMetric.root, coverageMetric.root);
 
-const batteryBar = new ProgressBar({ label: 'Batería', value: 0 });
-const powerTelemetry = el('p', { class: 'ui-mono text-muted', id: 'power-telemetry' }, 'Sin telemetría.');
-const scienceStatus = el('p', { class: 'ui-note', id: 'science-status' }, 'Analizando candidatos topográficos…');
+const batteryBar = new ProgressBar({ label: 'Battery', value: 0 });
+const powerStatus = { NOMINAL: 'Nominal', RESERVA: 'Reserve', CRÍTICO: 'Critical', AGOTADA: 'Depleted' };
+const powerTelemetry = el('p', { class: 'ui-mono text-muted', id: 'power-telemetry' }, 'No telemetry.');
+const scienceStatus = el('p', { class: 'ui-note', id: 'science-status' }, 'Analyzing terrain candidates…');
 const energySection = el(
   'div',
   { class: 'status-section' },
-  el('h3', { class: 'status-section__title' }, 'Energía y ciencia'),
+  el('h3', { class: 'status-section__title' }, 'Power and science'),
   batteryBar.root,
   powerTelemetry,
   scienceStatus,
 );
 
-const beamStatus = el('p', { class: 'ui-note', id: 'beam-status' }, 'Diagnóstico visual pendiente.');
+const beamStatus = el('p', { class: 'ui-note', id: 'beam-status' }, 'Awaiting visual diagnostics.');
 const diagnosticSection = el(
   'div',
   { class: 'status-section' },
-  el('h3', { class: 'status-section__title' }, 'Diagnóstico visual'),
+  el('h3', { class: 'status-section__title' }, 'Visual diagnostics'),
   beamStatus,
 );
 
-const statusSource = el('p', { class: 'ui-note' }, 'Fuente pendiente.');
+const statusSource = el('p', { class: 'ui-note' }, 'Awaiting data source.');
 const sourceSection = el(
   'div',
   { class: 'status-section' },
-  el('h3', { class: 'status-section__title' }, 'Fuente de datos'),
+  el('h3', { class: 'status-section__title' }, 'Data source'),
   statusSource,
 );
 
 const angularChart = el('div', { id: 'angular-chart' });
-const analysis = el('div', { class: 'status-section' }, el('h3', { class: 'status-section__title' }, 'Elevación y horizonte'), angularChart,
+const analysis = el('div', { class: 'status-section' }, el('h3', { class: 'status-section__title' }, 'Elevation and horizon'), angularChart,
   el('div', { class: 'mission-exports' }, ...(['csv', 'json'] as const).map(format => {
-    const exportButton = el('button', { class: 'flight-button', type: 'button' }, `Exportar ${format.toUpperCase()}`);
+    const exportButton = el('button', { class: 'flight-button', type: 'button' }, `Export ${format.toUpperCase()}`);
     listen(exportButton, 'click', () => { if (siteData) downloadAnalysis(format, siteData, landing ? `local_dem_${activeAsset?.origin ?? 'unknown'}` : activeAsset?.origin ?? 'unknown', landing); });
     return exportButton;
   })));
@@ -425,7 +426,7 @@ const story = new ExplorerStoryMode(byId('story-mount'), {
   relocate: () => { setRelocating(!relocating); story.message(''); },
   compare: openComparator,
   retry: restartStory,
-  planner: () => { location.hash = '#mision'; },
+  planner: () => { location.hash = '#planner'; },
 });
 
 const comparator = new SiteComparator(appShell, async (id, abort) => {
@@ -443,14 +444,14 @@ function setPanelOpen(open: boolean): void {
   controlPanel.inert = !open;
   appShell.classList.toggle('panel-collapsed', !open);
   panelToggle.setAttribute('aria-expanded', String(open));
-  panelToggle.setAttribute('aria-label', open ? 'Ocultar controles' : 'Mostrar controles');
+  panelToggle.setAttribute('aria-label', open ? 'Hide controls' : 'Show controls');
   panelBackdrop.hidden = !open || !isMobileViewport();
 }
 
 function setStatusOpen(open: boolean): void {
   statusPanel.dataset.open = String(open);
   statusToggle.setAttribute('aria-expanded', String(open));
-  statusToggle.setAttribute('aria-label', open ? 'Ocultar estado y resultados' : 'Mostrar estado y resultados');
+  statusToggle.setAttribute('aria-label', open ? 'Hide status and results' : 'Show status and results');
 }
 
 panelToggle.addEventListener('click', () => {
@@ -471,9 +472,9 @@ listen(mobileQuery, 'change', () => {
 });
 
 function sourceLabel(): string {
-  if (activeAsset?.origin === 'mock') return landing ? 'SIMULADO · horizonte local' : 'SIMULADO';
-  if (landing) return `Horizonte local · ${activeAsset?.origin === 'bundled' ? 'copia local' : 'efemérides del sitio base'}`;
-  return activeAsset?.origin === 'bundled' ? 'Copia local' : 'Backend';
+  if (activeAsset?.origin === 'mock') return landing ? 'SIMULATED · local horizon' : 'SIMULATED';
+  if (landing) return `Local horizon · ${activeAsset?.origin === 'bundled' ? 'local copy' : 'base-site ephemerides'}`;
+  return activeAsset?.origin === 'bundled' ? 'Local copy' : 'Backend';
 }
 
 function setFormDisabled(disabled: boolean): void {
@@ -487,9 +488,9 @@ function setFormDisabled(disabled: boolean): void {
 
 function setSourceCopy(mock: boolean): void {
   const original = mock
-    ? 'Modo simulado: relieve, horizonte y efemérides ficticios para desarrollo sin API.'
-    : 'Terreno LOLA y efemérides JPL Horizons del conjunto entregado por el equipo. Visualización geométrica; no certificada para planificación de vuelo.';
-  const text = `${original}${landing ? ' En el punto reubicado se estima el horizonte dentro del DEM y se reutilizan los ángulos del sitio base.' : ''}`;
+    ? 'Simulated terrain, horizon and ephemerides for testing without the API.'
+    : 'LOLA terrain and JPL Horizons ephemerides from the mission dataset. Geometric visualization for exploratory planning.';
+  const text = `${original}${landing ? ' The relocated site uses a horizon estimated from the local elevation model and angles from the base site.' : ''}`;
   setText(dataSource, text);
   setText(statusSource, text);
 }
@@ -501,20 +502,21 @@ function hideToast(): void {
 
 function showError(cause: unknown): void {
   const hints: Record<number, string> = {
-    404: 'El registro puede haber expirado. Vuelve a registrar las coordenadas.',
-    409: 'El servidor ya está procesando este punto. Espera antes de reintentar.',
-    422: 'No hay cobertura suficiente para estas coordenadas o fechas. Prueba otro punto dentro de los DEM disponibles.',
-    429: 'El servidor está procesando otro sitio. Espera y reintenta.',
-    502: 'No se pudieron obtener las efemérides de Horizons. Reintenta más tarde.',
-    503: 'El servidor necesita Redis, los DEM y el entorno Python para generar sitios nuevos.',
-    504: 'La generación superó el tiempo máximo del servidor. Puedes reintentar.',
+    404: 'The registration may have expired. Register the coordinates again.',
+    409: 'The server is already processing this site. Wait a moment and try again.',
+    422: 'These coordinates or dates lack coverage. Try another site or time window.',
+    429: 'The server is processing another site. Wait a moment and try again.',
+    502: 'Horizons ephemerides are unavailable. Try again later.',
+    503: 'Site generation is unavailable on this server.',
+    504: 'Site generation timed out. Try again.',
   };
-  errorText.textContent = `${cause instanceof Error ? cause.message : String(cause)}. ${
-    cause instanceof BackendError ? hints[cause.status] ?? 'Revisa los datos e intenta de nuevo.' : 'Comprueba la conexión e intenta de nuevo.'
-  }`;
+  errorText.textContent = cause instanceof BackendError
+    ? hints[cause.status] ?? `The server returned HTTP ${cause.status}. Check your inputs and try again.`
+    : 'Mission data could not load. Check your connection and try again.';
+  console.error('Mission data load failed', cause);
   retryButton.hidden = false;
   toast.hidden = false;
-  announce('Error de carga. Revisa el aviso y reintenta.');
+  announce('Could not load mission data. Check the error and try again.');
 }
 
 function updateCompass(): void {
@@ -555,10 +557,10 @@ function updateBeamStatus(): void {
   setText(
     beamStatus,
     diagnostic.dte === 'outside_visual_terrain'
-      ? 'DTE bloqueado según el horizonte; sin impacto en el terreno visual. Pulsos e incidencia ilustrativos.'
+      ? 'The horizon blocks DTE, with no impact in the rendered terrain. Pulses and incidence are illustrative.'
       : diagnostic.dte === 'impact'
-        ? `Impacto visual DTE a ${diagnostic.impactDistanceM?.toFixed(1)} m de la antena. Pulsos e incidencia ilustrativos.`
-        : 'Pulsos RF e incidencia solar ilustrativos; no representan un presupuesto de enlace o potencia.',
+        ? `Rendered DTE impact at ${diagnostic.impactDistanceM?.toFixed(1)} m from the antenna. Pulses and incidence are illustrative.`
+        : 'RF pulses and solar incidence are illustrative. Use a separate model for link and power budgets.',
   );
 }
 
@@ -566,17 +568,17 @@ function updateStatus(state: TimeState): void {
   const conditions = state.conditions;
   setText(byId('hud-utc'), new Date(state.timestampMs).toISOString().slice(11, 19));
   setText(byId('hud-date'), new Date(state.timestampMs).toISOString().slice(0, 10));
-  setText(byId('hud-sun'), conditions.sun_visible ? 'Visible' : 'Oculto');
-  setText(byId('hud-earth'), conditions.earth_visible ? 'Enlace directo' : 'Enlace bloqueado');
-  setText(byId('hud-sun-angle'), `Elevación ${formatSigned(state.sun.elevation_deg)}°`);
-  setText(byId('hud-earth-angle'), `Elevación ${formatSigned(state.earth.elevation_deg)}°`);
+  setText(byId('hud-sun'), conditions.sun_visible ? 'Visible' : 'Obscured');
+  setText(byId('hud-earth'), conditions.earth_visible ? 'Direct link' : 'Link blocked');
+  setText(byId('hud-sun-angle'), `Elevation ${formatSigned(state.sun.elevation_deg)}°`);
+  setText(byId('hud-earth-angle'), `Elevation ${formatSigned(state.earth.elevation_deg)}°`);
   const co = conditions.co_visibility;
 
-  setText(coValue, co ? 'Sí' : 'No');
+  setText(coValue, co ? 'Yes' : 'No');
   coValue.classList.toggle('is-ok', co);
-  sunChip.set(conditions.sun_visible ? 'Sol visible' : 'Sol oculto', conditions.sun_visible ? 'sun' : 'neutral');
-  earthChip.set(conditions.earth_visible ? 'Tierra visible' : 'Tierra oculta', conditions.earth_visible ? 'earth' : 'neutral');
-  coChip.set(co ? 'Co-visibilidad' : 'Sin co-visibilidad', co ? 'ok' : 'neutral');
+  sunChip.set(conditions.sun_visible ? 'Sun visible' : 'Sun obscured', conditions.sun_visible ? 'sun' : 'neutral');
+  earthChip.set(conditions.earth_visible ? 'Earth visible' : 'Earth obscured', conditions.earth_visible ? 'earth' : 'neutral');
+  coChip.set(co ? 'Co-visibility' : 'No co-visibility', co ? 'ok' : 'neutral');
 
   setText(sunMetric.value, `Az ${state.sun.azimuth_deg.toFixed(1)}° · El ${formatSigned(state.sun.elevation_deg)}°`);
   setText(earthMetric.value, `Az ${state.earth.azimuth_deg.toFixed(1)}° · El ${formatSigned(state.earth.elevation_deg)}°`);
@@ -586,7 +588,7 @@ function updateStatus(state: TimeState): void {
   setText(coverageMetric.value, `${shortUtc(range.start)} — ${shortUtc(range.end)}`);
   setText(byId('status-sample'), `${sourceLabel()} · ${Number.isFinite(sample) ? shortUtc(sample) : state.sampleTimestampUtc}`);
 
-  setBadgeText('dte-badge', conditions.earth_visible ? 'DTE: activo' : 'DTE: bloqueado', conditions.earth_visible ? 'ok' : 'danger');
+  setBadgeText('dte-badge', conditions.earth_visible ? 'DTE: active' : 'DTE: blocked', conditions.earth_visible ? 'ok' : 'danger');
 
   const telemetry = engine?.getPowerTelemetry();
   setText(byId('hud-battery'), telemetry ? `${telemetry.battery_pct.toFixed(1)}%` : '—');
@@ -595,19 +597,19 @@ function updateStatus(state: TimeState): void {
   setText(
     powerTelemetry,
     telemetry
-      ? `${telemetry.status_label} · ${telemetry.battery_pct.toFixed(1)}% · ${telemetry.net_watts.toFixed(0)} W netos · ${telemetry.temp_celsius.toFixed(1)} °C · Solar ${telemetry.solar_watts.toFixed(0)} W`
-      : 'Sin telemetría.',
+      ? `${powerStatus[telemetry.status_label]} · ${telemetry.battery_pct.toFixed(1)}% · ${telemetry.net_watts.toFixed(0)} W net · ${telemetry.temp_celsius.toFixed(1)} °C · Solar ${telemetry.solar_watts.toFixed(0)} W`
+      : 'No telemetry.',
   );
   const count = engine?.getScienceCandidateCount() ?? 0;
   setText(
     scienceStatus,
-    `${count} ${count === 1 ? 'candidato topográfico' : 'candidatos topográficos'} PSR. La profundidad no confirma sombra permanente ni hielo de agua.`,
+    `${count} ${count === 1 ? 'terrain candidate' : 'terrain candidates'} PSR. Depth alone cannot confirm permanent shadow or water ice.`,
   );
   updateBeamStatus();
 
-  timeline.setSampleText(`Muestra ${state.sampleTimestampUtc}`);
+  timeline.setSampleText(`Sample ${state.sampleTimestampUtc}`);
   timeline.setStatus(
-    `${sourceLabel()} (${state.sampleTimestampUtc}): Sol ${conditions.sun_visible ? 'visible' : 'oculto'} · Tierra ${conditions.earth_visible ? 'visible' : 'oculta'} · Co-visibilidad ${co ? 'sí' : 'no'}`,
+    `${sourceLabel()} (${state.sampleTimestampUtc}): Sun ${conditions.sun_visible ? 'visible' : 'obscured'} · Earth ${conditions.earth_visible ? 'visible' : 'obscured'} · Co-visibility ${co ? 'yes' : 'no'}`,
   );
 }
 
@@ -632,20 +634,20 @@ function refreshLive(): void {
   timeline.setLiveState({ active, disabled: mode === 'explorer' || loading || liveClock.simulated || !available });
 
   if (loading) {
-    setBadgeText('live-badge', 'Cargando', 'warning');
-    timeline.setLiveStatus('Consultando cobertura temporal…');
+    setBadgeText('live-badge', 'Loading', 'warning');
+    timeline.setLiveStatus('Checking time coverage…');
   } else if (liveClock.simulated) {
-    setBadgeText('live-badge', 'Simulado', 'warning');
-    timeline.setLiveStatus('Simulación: el modo en vivo requiere efemérides reales.');
+    setBadgeText('live-badge', 'Simulated', 'warning');
+    timeline.setLiveStatus('Live mode requires observed ephemerides.');
   } else if (!available) {
-    setBadgeText('live-badge', 'Fuera de cobertura', 'neutral');
-    timeline.setLiveStatus(`Sin cobertura para la hora actual. Datos disponibles: ${shortUtc(liveClock.start)} — ${shortUtc(liveClock.end)}.`);
+    setBadgeText('live-badge', 'Outside coverage', 'neutral');
+    timeline.setLiveStatus(`No coverage for the current time. Available data: ${shortUtc(liveClock.start)} — ${shortUtc(liveClock.end)}.`);
   } else if (active) {
-    setBadgeText('live-badge', 'En vivo', 'ok');
-    timeline.setLiveStatus('En vivo · reloj del dispositivo (UTC) · Posiciones interpoladas; visibilidad de la muestra horaria.');
+    setBadgeText('live-badge', 'Live', 'ok');
+    timeline.setLiveStatus('Live · device clock (UTC) · Interpolated positions and hourly visibility samples.');
   } else {
     setBadgeText('live-badge', 'Manual', 'neutral');
-    timeline.setLiveStatus('Exploración manual · Posiciones interpoladas; visibilidad de la muestra horaria.');
+    timeline.setLiveStatus('Manual · interpolated positions and hourly visibility samples.');
   }
 
   if (active) {
@@ -659,7 +661,7 @@ function toggleLive(): void {
   stopPlayback();
   liveClock.followNow = !liveClock.followNow;
   refreshLive();
-  announce(liveClock.followNow ? 'Modo en vivo activado.' : 'Modo en vivo pausado.');
+  announce(liveClock.followNow ? 'Live mode enabled.' : 'Live mode paused.');
 }
 
 function startPlayback(rate: number): void {
@@ -675,7 +677,7 @@ function startPlayback(rate: number): void {
   }
   timeline.setPlaying(true);
   lastStatusPaint = 0;
-  announce('Reproducción iniciada.');
+  announce('Playback started.');
   playbackRaf = requestAnimationFrame(playbackFrame);
 }
 
@@ -710,7 +712,7 @@ function playbackFrame(): void {
       updateAt(start);
     } else {
       stopPlayback();
-      announce('Fin de la efeméride disponible.');
+      announce('End of available ephemerides.');
       refreshLive();
       return;
     }
@@ -737,7 +739,7 @@ function setSlopeOverlay(checked: boolean) {
 function setRelocating(enabled: boolean) {
   relocating = enabled && !loading && !!siteData;
   relocateButton.setPressed(relocating);
-  relocateButton.setLabel(relocating ? 'Salir del reubicador' : 'Activar reubicador');
+  relocateButton.setLabel(relocating ? 'Exit relocation' : 'Activate relocation');
   viewport.classList.toggle('is-relocating', relocating);
   viewport.tabIndex = relocating ? 0 : -1;
   relocateFeedback.hidden = !relocating;
@@ -749,9 +751,9 @@ function setRelocating(enabled: boolean) {
   setSlopeOverlay(true);
   if (viewMode !== 'top' && viewMode !== 'orbital') setView('top');
   if (isMobileViewport()) setPanelOpen(false);
-  const tip = 'Elige un vértice verde · flechas y Enter con teclado';
+  const tip = 'Choose a green point · arrow keys and Enter';
   relocateFeedback.textContent = tip;
-  story.cursorReadout(isMobileViewport() ? 'Toca un vértice verde del mapa.' : tip);
+  story.cursorReadout(isMobileViewport() ? 'Tap a green point on the map.' : tip);
   viewport.focus({ preventScroll: true });
 }
 
@@ -768,14 +770,14 @@ function applyLanding(point: LandingPoint) {
   setSourceCopy(activeAsset?.origin === 'mock');
   statusSubtitle.textContent = `${lastSelection} · X ${point.x.toFixed(3)} km · Z ${point.z.toFixed(3)} km · ${point.slopeDeg.toFixed(1)}°`;
   updateAt(currentTime); refreshLive();
-  announce(`Módulo en X ${point.x.toFixed(3)} km, Z ${point.z.toFixed(3)} km. Pendiente ${point.slopeDeg.toFixed(1)}°. Horizonte recalculado en ${Math.round(performance.now() - start)} ms.`);
+  announce(`Lander at X ${point.x.toFixed(3)} km, Z ${point.z.toFixed(3)} km. Slope ${point.slopeDeg.toFixed(1)}°. Horizon recalculated in ${Math.round(performance.now() - start)} ms.`);
 }
 
 function hoverLanding(x: number, y: number) {
   const point = engine?.pickLandingPoint(x, y);
   engine?.previewLandingPoint(point);
   const safe = point ? point.slopeDeg < 10 : undefined;
-  const label = point ? `${point.slopeDeg.toFixed(1)}° · ${safe ? 'Zona verde' : 'Zona de riesgo'}` : 'Apunta dentro del mapa de pendientes';
+  const label = point ? `${point.slopeDeg.toFixed(1)}° · ${safe ? 'Safe slope' : 'Unsafe slope'}` : 'Point inside the slope map';
   relocateFeedback.textContent = label;
   relocateFeedback.dataset.safe = safe === undefined ? '' : String(safe);
   story.cursorReadout(label, safe);
@@ -785,7 +787,7 @@ function hoverLanding(x: number, y: number) {
 function pickLanding(x: number, y: number) {
   const point = hoverLanding(x, y);
   if (!point) return;
-  if (story.step === 2 && point.slopeDeg >= 10) { story.message(`Pendiente de ${point.slopeDeg.toFixed(1)}°. Prueba una zona verde de menos de 10°.`); return; }
+  if (story.step === 2 && point.slopeDeg >= 10) { story.message(`Slope of ${point.slopeDeg.toFixed(1)}°. Try a green point under 10°.`); return; }
   try {
     applyLanding(point);
     setRelocating(false);
@@ -840,12 +842,12 @@ listen(viewport, 'keydown', event => {
   keyboardPoint.x = clamp(keyboardPoint.x + (e.key === 'ArrowLeft' ? -12 : e.key === 'ArrowRight' ? 12 : 0), rect.left + 1, rect.right - 1);
   keyboardPoint.y = clamp(keyboardPoint.y + (e.key === 'ArrowUp' ? -12 : e.key === 'ArrowDown' ? 12 : 0), rect.top + 1, rect.bottom - 1);
   const point = hoverLanding(keyboardPoint.x, keyboardPoint.y);
-  announce(point ? `${point.slopeDeg.toFixed(1)} grados. ${point.slopeDeg < 10 ? 'Zona verde.' : 'Zona de riesgo.'}` : 'Fuera del mapa de pendientes.');
+  announce(point ? `${point.slopeDeg.toFixed(1)} degrees. ${point.slopeDeg < 10 ? 'Safe slope.' : 'Unsafe slope.'}` : 'Outside the slope map.');
 });
 
 function openComparator() {
   if (!siteData || loading) return;
-  const current = { id: '@current', label: `${lastSelection === 'MOCK' ? 'Demo simulada' : lastSelection}${landing ? ' · reubicado' : ' · activo'}` };
+  const current = { id: '@current', label: `${lastSelection === 'MOCK' ? 'Simulated demo' : lastSelection}${landing ? ' · relocated' : ' · active'}` };
   const choices = [current, ...Array.from(siteSelect.select.options)
     .filter(option => option.value && !option.disabled && (option.value !== 'MOCK' || lastSelection === 'MOCK'))
     .map(option => ({ id: option.value, label: option.textContent ?? option.value }))];
@@ -867,7 +869,7 @@ function enterStoryStep(step: 1 | 2 | 3 | 4 | 5 | 6) {
     updateAt(start);
     const any = siteData.ephemeris_timeline.some(frame => frame.conditions.co_visibility);
     story.setNoWindow(!any);
-    if (!any) story.message('Este vértice no tiene luz y señal simultáneas durante la cobertura. Prueba otra zona verde.');
+    if (!any) story.message('This point has no overlapping light and signal in the available data. Try another green point.');
   }
   if (step === 6) queueMicrotask(openComparator);
 }
@@ -934,15 +936,15 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
   loadProgress.hidden = false;
   timeline.setEnabled(false);
 
-  let phase = coordinates ? 'Registrando coordenadas' : 'Cargando sitio';
+  let phase = coordinates ? 'Registering coordinates' : 'Loading site';
   let keepProgress = false;
   const began = Date.now();
   const report = () => {
-    loadProgress.textContent = `${phase} · ${Math.floor((Date.now() - began) / 1000)} s. La generación nueva puede tardar hasta 4 minutos.`;
+    loadProgress.textContent = `${phase} · ${Math.floor((Date.now() - began) / 1000)} s. A new site can take up to four minutes.`;
   };
   report();
   const waiting = window.setInterval(report, 1000);
-  timeline.setStatus(`Cargando ${selected}…`);
+  timeline.setStatus(`Loading ${selected}…`);
 
   try {
     if (coordinates) {
@@ -953,8 +955,8 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
       if (!exists) siteSelect.select.add(new Option(registered.name ?? selected, selected));
       if (registered.status === 'pending_data') {
         const option = Array.from(siteSelect.select.options).find(item => item.value === selected)!;
-        option.textContent = `${registered.name ?? selected} (por generar)`; option.disabled = true;
-        const message = `El backend registró ${registered.name ?? selected}. El sitio todavía no tiene terreno ni efemérides para analizar.`;
+        option.textContent = `${registered.name ?? selected} (awaiting data)`; option.disabled = true;
+        const message = `The server registered ${registered.name ?? selected}. Terrain and ephemerides are still pending for this site.`;
         loadProgress.textContent = message;
         keepProgress = true;
         announce(message);
@@ -967,15 +969,15 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
       customRanges.set(selected, customDateRange(liveClock.followNow ? Date.now() : currentTime));
     }
 
-    phase = selected.startsWith('custom_') ? 'Generando o recuperando terreno, horizonte y efemérides' : 'Descargando datos del sitio';
+    phase = selected.startsWith('custom_') ? 'Preparing terrain, horizon and ephemerides' : 'Downloading site data';
     report();
-    if (!engine) throw new Error('El motor 3D no está disponible.');
+    if (!engine) throw new Error('The 3D engine is unavailable.');
     const mock = selected === 'MOCK' ? createMockSite() : undefined;
     const asset: SiteAsset = mock ? { ...mock, origin: 'mock' } : await api.loadSite(selected, Number(selectedHeight) as 2 | 5, active.signal, customRanges.get(selected), preferBundled);
     const { site, field } = asset;
     if (disposed || active.signal.aborted) return false;
 
-    phase = 'Construyendo terreno 3D';
+    phase = 'Building 3D terrain';
     report();
     await engine.loadSite(site, field);
     engine.setObserverHeight(Number(selectedHeight));
@@ -996,22 +998,22 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
 
     const heightNote =
       selectedHeight === '5' && !selected.startsWith('custom_')
-        ? ' A 5 m, el backend reutiliza las efemérides de 2 m como aproximación.'
+        ? ' The 5 m model approximates positions using the 2 m ephemerides.'
         : '';
     setText(
       siteDetail,
       mock
-        ? 'SIMULADO: parche de 20 × 20 km. Relieve, horizonte y estados ficticios para probar sin API.'
-        : `${selected} · ${sourceLabel()} · PNG de 16 bits · Parche de ${site.terrain_metadata.patch_size_km.toFixed(3)} km · Observador a ${selectedHeight} m.${heightNote}`,
+        ? 'SIMULATED · 20 × 20 km patch. Synthetic terrain, horizon and visibility for testing without the API.'
+        : `${selected} · ${sourceLabel()} · 16-bit PNG · Patch size ${site.terrain_metadata.patch_size_km.toFixed(3)} km · Observer at ${selectedHeight} m.${heightNote}`,
     );
     setSourceCopy(!!mock);
     setText(
       statusSubtitle,
       mock
-        ? 'Modo simulado · Datos ficticios para desarrollo'
-        : `${selected} · ${sourceLabel()} · ${site.terrain_metadata.patch_size_km.toFixed(1)} km · Observador a ${selectedHeight} m`,
+        ? 'Simulation · Synthetic test data'
+        : `${selected} · ${sourceLabel()} · ${site.terrain_metadata.patch_size_km.toFixed(1)} km · Observer at ${selectedHeight} m`,
     );
-    heightSelect.select.options[1].textContent = selected.startsWith('custom_') ? '5 m' : '5 m (aproximación)';
+    heightSelect.select.options[1].textContent = selected.startsWith('custom_') ? '5 m' : '5 m (approximate)';
     updateAt(currentTime);
     return true;
   } catch (cause) {
@@ -1023,10 +1025,10 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
       }
       if (!active.signal.aborted) showError(cause);
       else {
-        const message = 'Espera cancelada. El servidor podría continuar el cálculo; puedes volver a cargar el sitio.';
+        const message = 'Canceled. The server may still finish processing. You can try loading the site again.';
         loadProgress.textContent = message;
         timeline.setStatus(message);
-        announce('Carga cancelada.');
+        announce('Loading canceled.');
       }
     }
     return false;
@@ -1045,7 +1047,7 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
 
 const bundledOptions = [
   ...OFFLINE_SITES.map(site_id => ({ value: site_id, label: site_id })),
-  { value: 'MOCK', label: 'Demo sin API (simulado)' },
+  { value: 'MOCK', label: 'Offline demo (simulated)' },
 ];
 
 async function fetchCatalog(): Promise<void> {
@@ -1059,7 +1061,7 @@ async function fetchCatalog(): Promise<void> {
     const options = sites.map(item => {
       const label = item.name ?? item.site_id;
       const pending = item.status === 'pending_data';
-      return { value: item.site_id, label: pending ? `${label} (por generar)` : label, disabled: pending };
+      return { value: item.site_id, label: pending ? `${label} (awaiting data)` : label, disabled: pending };
     });
     for (const option of Array.from(siteSelect.select.options)) if (customRanges.has(option.value) && !options.some(r => r.value === option.value)) {
       options.push({ value: option.value, label: option.textContent ?? option.value, disabled: option.disabled });
@@ -1086,8 +1088,8 @@ export function setMode(next: 'explorer' | 'planner') {
   mode = next;
   appShell.dataset.mode = mode;
   byId('mission-title').textContent = next === 'explorer' ? 'Lunar Co-Visibility Explorer' : 'Mission Planner';
-  modeSwitch.href = next === 'explorer' ? '#mision' : '#explorador';
-  modeSwitch.textContent = next === 'explorer' ? 'Mission Planner' : 'Explorador';
+  modeSwitch.href = next === 'explorer' ? '#planner' : '#explorer';
+  modeSwitch.textContent = next === 'explorer' ? 'Mission Planner' : 'Explorer';
   storyReset.hidden = next !== 'explorer';
   setPanelOpen(next === 'planner' && !isMobileViewport());
   setStatusOpen(false);
@@ -1105,8 +1107,13 @@ export function setMode(next: 'explorer' | 'planner') {
   }
 }
 
+export function setExplorerVisibility(visible: boolean) {
+  story.setPageVisible(visible && !appShell.hidden && !document.hidden);
+}
+
 retryButton.addEventListener('click', () => void retryAction(), { signal });
 document.addEventListener('visibilitychange', () => {
+  setExplorerVisibility(mode === 'explorer');
   if (!document.hidden) refreshLive();
 }, { signal });
 
@@ -1123,7 +1130,7 @@ if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     disposed = true;
     request?.abort();
-    catalogRequest?.abort(); comparator.close();
+    catalogRequest?.abort(); comparator.close(); story.close();
     if (cursorFrame) cancelAnimationFrame(cursorFrame);
     window.clearInterval(compassTimer);
     window.clearInterval(perfTimer);

@@ -80,29 +80,29 @@ export class TimelineWidget {
     this.callbacks = callbacks;
     mount.replaceChildren();
 
-    this.stepBackButton = this.transportButton('stepBack', 'Retroceder una muestra');
-    this.playButton = this.transportButton('play', 'Reproducir');
+    this.stepBackButton = this.transportButton('stepBack', 'Previous sample');
+    this.playButton = this.transportButton('play', 'Play');
     this.playButton.classList.add('transport-btn--play');
-    this.stepForwardButton = this.transportButton('stepForward', 'Avanzar una muestra');
-    this.loopButton = this.transportButton('loop', 'Bucle');
+    this.stepForwardButton = this.transportButton('stepForward', 'Next sample');
+    this.loopButton = this.transportButton('loop', 'Loop');
     this.loopButton.classList.add('transport-btn--loop');
     this.loopButton.setAttribute('aria-pressed', 'false');
 
-    const speeds = el('div', { class: 'timeline__speeds', role: 'group', 'aria-label': 'Velocidad de reproducción' });
+    const speeds = el('div', { class: 'timeline__speeds', role: 'group', 'aria-label': 'Playback speed' });
     for (const speed of SPEEDS) {
       const button = el('button', {
         class: 'speed-btn',
         type: 'button',
         'data-speed': speed,
         'aria-pressed': String(speed === this.speed),
-        'aria-label': `${speed} veces`,
+        'aria-label': `${speed} times`,
       }, `${speed}×`);
       button.addEventListener('click', () => this.setSpeed(speed), { signal: this.events.signal });
       this.speedButtons.push(button);
       speeds.append(button);
     }
 
-    this.utcOutput = el('output', { class: 'timeline__utc', 'aria-live': 'off' }, 'Cargando datos…');
+    this.utcOutput = el('output', { class: 'timeline__utc', 'aria-live': 'off' }, 'Loading data…');
     this.sampleOutput = el('span', { class: 'timeline__sample' }, '');
     const readout = el('div', { class: 'timeline__readout' }, this.utcOutput, this.sampleOutput);
 
@@ -111,7 +111,7 @@ export class TimelineWidget {
       type: 'button',
       'aria-pressed': 'false',
       disabled: true,
-    }, 'En vivo');
+    }, 'Live');
     this.liveButton.addEventListener('click', () => this.callbacks.onLiveToggle(), { signal: this.events.signal });
 
     const top = el(
@@ -144,7 +144,7 @@ export class TimelineWidget {
         class: 'timeline__ruler',
         role: 'slider',
         tabindex: 0,
-        'aria-label': 'Tiempo de la línea de tiempo',
+        'aria-label': 'Timeline position',
         'aria-valuemin': '0',
         'aria-valuemax': '0',
         'aria-valuenow': '0',
@@ -156,23 +156,23 @@ export class TimelineWidget {
       this.playhead,
     );
 
-    this.statusOutput = el('p', { class: 'timeline__status', role: 'status' }, 'Preparando terreno…');
-    this.liveStatusOutput = el('p', { class: 'timeline__live-status', id: 'live-status' }, 'Consultando cobertura temporal…');
+    this.statusOutput = el('p', { class: 'timeline__status', role: 'status' }, 'Preparing terrain…');
+    this.liveStatusOutput = el('p', { class: 'timeline__live-status', id: 'live-status' }, 'Checking time coverage…');
     const bottom = el(
       'div',
       { class: 'timeline__bottom' },
       el(
         'div',
         { class: 'timeline__legend', 'aria-hidden': 'true' },
-        this.legendItem('sun', 'Sol'),
-        this.legendItem('earth', 'Tierra'),
-        this.legendItem('co', 'Co-visibilidad'),
+        this.legendItem('sun', 'Sun'),
+        this.legendItem('earth', 'Earth'),
+        this.legendItem('co', 'Co-visibility'),
       ),
       this.statusOutput,
       this.liveStatusOutput,
     );
 
-    this.root = el('section', { class: 'timeline is-disabled', 'aria-label': 'Línea de tiempo lunar' }, top, this.ruler, bottom);
+    this.root = el('section', { class: 'timeline is-disabled', 'aria-label': 'Lunar timeline' }, top, this.ruler, bottom);
     mount.append(this.root);
 
     this.bindEvents();
@@ -218,7 +218,7 @@ export class TimelineWidget {
   setLiveState(state: LiveState): void {
     this.liveActive = state.active;
     this.liveDisabled = state.disabled;
-    this.liveButton.textContent = state.active ? 'Pausar en vivo' : 'En vivo';
+    this.liveButton.textContent = state.active ? 'Pause live' : 'Live';
     this.liveButton.setAttribute('aria-pressed', String(state.active));
     this.liveButton.disabled = !this.enabled || state.disabled;
   }
@@ -230,8 +230,8 @@ export class TimelineWidget {
   setPlaying(playing: boolean): void {
     this.playing = playing;
     this.playButton.innerHTML = icon(playing ? 'pause' : 'play');
-    this.playButton.setAttribute('aria-label', playing ? 'Pausar reproducción' : 'Reproducir');
-    this.playButton.setAttribute('title', playing ? 'Pausar' : 'Reproducir');
+    this.playButton.setAttribute('aria-label', playing ? 'Pause playback' : 'Play');
+    this.playButton.setAttribute('title', playing ? 'Pause' : 'Play');
     this.root.classList.toggle('is-playing', playing);
   }
 
@@ -310,7 +310,7 @@ export class TimelineWidget {
     this.loopButton.addEventListener('click', () => {
       this.looping = !this.looping;
       this.loopButton.setAttribute('aria-pressed', String(this.looping));
-      this.loopButton.setAttribute('aria-label', this.looping ? 'Desactivar bucle' : 'Activar bucle');
+      this.loopButton.setAttribute('aria-label', this.looping ? 'Turn loop off' : 'Turn loop on');
     }, { signal });
 
     this.ruler.addEventListener('pointerdown', event => this.onPointerDown(event), { signal });

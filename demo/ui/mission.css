@@ -44,7 +44,7 @@ button, input, select { caret-color: var(--ui-accent); }
 #dte-badge { display: none; } /* The same state is now beside Earth in the HUD. */
 .perf { display: none; }
 #status-toggle { display: inline-flex; width: auto; gap: 6px; padding: 0 10px; font-size: 12px; }
-#status-toggle::after { content: 'Detalles'; }
+#status-toggle::after { content: 'Details'; }
 .control-panel { background: var(--bg-1); }
 .control-panel > .control-panel__scroll { padding: 0 16px 20px; }
 .ui-accordion { background: none; border: 0; border-bottom: 1px solid var(--border-soft); margin: 0; }
@@ -105,8 +105,8 @@ button, input, select { caret-color: var(--ui-accent); }
   .app-header__mark { display: none; }
   .app-header__status { gap: 2px; }
   #status-toggle, #panel-toggle { width: 56px; min-width: 56px; padding: 0; gap: 2px; flex-direction: column; justify-content: center; font-size: 10px; }
-  #status-toggle::after { content: 'Detalles'; }
-  #panel-toggle::after { content: 'Controles'; }
+  #status-toggle::after { content: 'Details'; }
+  #panel-toggle::after { content: 'Controls'; }
   #status-toggle svg, #panel-toggle svg { width: 16px; height: 16px; }
   .scene-hud, .panel-collapsed .scene-hud { top: 74px; left: 16px; right: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; }
   .scene-hud dd { font-size: 13px; }

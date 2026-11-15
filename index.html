@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -18,76 +18,76 @@
           </svg>
           <h1 id="start-title">Light&amp;Link</h1>
         </div>
-        <button class="start-menu__action" id="start-action" type="button" aria-haspopup="dialog">Iniciar</button>
+        <button class="start-menu__action" id="start-action" type="button" aria-haspopup="dialog">Start</button>
         <div class="start-menu__footer">
-          <a class="start-menu__exit" href="https://www.lightlink.club/">Salir</a>
+          <a class="start-menu__exit" href="https://www.lightlink.club/">Exit</a>
           <p class="start-menu__error" id="start-error" role="alert" hidden></p>
-          <noscript>Activa JavaScript para abrir la escena lunar.</noscript>
+          <noscript>Enable JavaScript to open the lunar scene.</noscript>
         </div>
       </div>
     </main>
     <dialog id="role-dialog" class="flight-panel flight-dialog role-dialog" aria-labelledby="role-title">
       <header class="flight-dialog__head">
-        <h2 id="role-title">Elige tu modo de misión</h2>
-        <button id="role-close" class="flight-button" type="button">Volver</button>
+        <h2 id="role-title">Choose your mission mode</h2>
+        <button id="role-close" class="flight-button" type="button">Back</button>
       </header>
-      <p class="flight-dialog__intro">El mismo polo sur lunar, dos formas de explorarlo.</p>
+      <p class="flight-dialog__intro">Two ways to explore the lunar south pole.</p>
       <div class="role-options">
-        <a href="#explorador" class="role-option">
-          <strong>Modo Explorador</strong>
-          <span>Seis misiones guiadas para aprender a aterrizar, encontrar luz y mantener la Tierra a la vista.</span>
-          <span class="role-option__action">Comenzar la historia</span>
+        <a href="#explorer" class="role-option">
+          <strong>Explorer</strong>
+          <span>Six guided missions to practice landing, finding sunlight and keeping Earth in sight.</span>
+          <span class="role-option__action">Start the story</span>
         </a>
-        <a href="#mision" class="role-option">
+        <a href="#planner" class="role-option">
           <strong>Mission Planner</strong>
-          <span>Controles libres, telemetría angular, comparación de sitios y exportación de resultados.</span>
-          <span class="role-option__action">Abrir el tablero</span>
+          <span>Explore freely, compare sites and export mission data.</span>
+          <span class="role-option__action">Open planner</span>
         </a>
       </div>
     </dialog>
     <div id="app" class="app-shell" hidden>
-      <div id="viewport" class="viewport" aria-label="Vista tridimensional del terreno lunar"></div>
-      <dl class="scene-hud" aria-label="Datos de misión sobre la escena">
-        <div class="scene-hud__item"><dt>Hora UTC</dt><dd id="hud-utc">—</dd><small id="hud-date">—</small></div>
-        <div class="scene-hud__item"><dt>Sol</dt><dd id="hud-sun">—</dd><small id="hud-sun-angle">—</small></div>
-        <div class="scene-hud__item"><dt>Tierra · DTE</dt><dd id="hud-earth">—</dd><small id="hud-earth-angle">—</small></div>
-        <div class="scene-hud__item"><dt>Batería simulada</dt><dd id="hud-battery">—</dd><progress id="hud-battery-bar" aria-label="Batería simulada" max="100" value="0"></progress></div>
+      <div id="viewport" class="viewport" aria-label="3D view of the lunar terrain"></div>
+      <dl class="scene-hud" aria-label="Mission data overlay">
+        <div class="scene-hud__item"><dt>UTC time</dt><dd id="hud-utc">—</dd><small id="hud-date">—</small></div>
+        <div class="scene-hud__item"><dt>Sun</dt><dd id="hud-sun">—</dd><small id="hud-sun-angle">—</small></div>
+        <div class="scene-hud__item"><dt>Earth · DTE</dt><dd id="hud-earth">—</dd><small id="hud-earth-angle">—</small></div>
+        <div class="scene-hud__item"><dt>Simulated battery</dt><dd id="hud-battery">—</dd><progress id="hud-battery-bar" aria-label="Simulated battery" max="100" value="0"></progress></div>
       </dl>
 
       <header class="app-header" id="app-header">
         <div class="app-header__brand">
-          <a class="mission-home" href="#inicio" aria-label="Volver al menú de inicio">
+          <a class="mission-home" href="#home" aria-label="Return to the main menu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
               <path d="M20.2 14.2A8.5 8.5 0 0 1 9.8 3.8a8.5 8.5 0 1 0 10.4 10.4Z" />
               <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none" />
             </svg>
-            <span>Inicio</span>
+            <span>Home</span>
           </a>
           <div>
             <h1 id="mission-title" tabindex="-1">Lunar Co-Visibility Explorer</h1>
-            <p class="app-header__subtitle" id="site-subtitle">Terreno LOLA · Efemérides JPL Horizons · Visualización geométrica</p>
+            <p class="app-header__subtitle" id="site-subtitle">LOLA terrain · JPL Horizons ephemerides · Geometric view</p>
           </div>
         </div>
 
         <div class="app-header__status">
-          <a class="flight-button header-tool" id="mode-switch" href="#explorador">Explorador</a>
-          <button class="flight-button header-tool" id="story-reset" type="button" hidden>Reiniciar</button>
-          <button class="flight-button header-tool" id="compare-open" type="button" aria-haspopup="dialog" disabled>Comparar</button>
+          <a class="flight-button header-tool" id="mode-switch" href="#explorer">Explorer</a>
+          <button class="flight-button header-tool" id="story-reset" type="button" hidden>Restart</button>
+          <button class="flight-button header-tool" id="compare-open" type="button" aria-haspopup="dialog" disabled>Compare</button>
           <span class="ui-badge" id="live-badge" role="status">
             <span class="ui-badge__dot" aria-hidden="true"></span>
-            <span class="badge-live-text">Cargando</span>
+            <span class="badge-live-text">Loading</span>
           </span>
           <span class="ui-badge" id="dte-badge" aria-live="polite">
             <span class="ui-badge__dot" aria-hidden="true"></span>
-            <span class="badge-dte-text">DTE: pendiente</span>
+            <span class="badge-dte-text">DTE: pending</span>
           </span>
-          <span class="perf" id="perf" aria-label="Rendimiento">Midiendo FPS…</span>
-          <button class="icon-button" id="status-toggle" type="button" aria-expanded="false" aria-controls="status-panel" aria-label="Mostrar estado y resultados">
+          <span class="perf" id="perf" aria-label="Performance">Measuring FPS…</span>
+          <button class="icon-button" id="status-toggle" type="button" aria-expanded="false" aria-controls="status-panel" aria-label="Show status and results">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
               <path d="M4 6h16M4 12h16M4 18h10" stroke-linecap="round" />
             </svg>
           </button>
-          <button class="icon-button" id="panel-toggle" type="button" aria-expanded="true" aria-controls="control-panel" aria-label="Ocultar controles">
+          <button class="icon-button" id="panel-toggle" type="button" aria-expanded="true" aria-controls="control-panel" aria-label="Hide controls">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
               <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" />
             </svg>
@@ -95,24 +95,24 @@
         </div>
       </header>
 
-      <aside class="control-panel" id="control-panel" data-open="true" aria-label="Controles de misión">
+      <aside class="control-panel" id="control-panel" data-open="true" aria-label="Mission controls">
         <div class="control-panel__scroll" id="panel-sections"></div>
       </aside>
 
       <div class="panel-backdrop" id="panel-backdrop" hidden></div>
 
-      <section class="status-panel ui-panel" id="status-panel" data-open="true" aria-label="Estado y resultados"></section>
+      <section class="status-panel ui-panel" id="status-panel" data-open="true" aria-label="Status and results"></section>
 
       <div class="compass-mount" id="compass-mount"></div>
       <div id="story-mount"></div>
       <output id="relocate-feedback" class="flight-panel relocate-feedback" hidden></output>
 
-      <section class="timeline-mount" id="timeline-mount" aria-label="Línea de tiempo lunar"></section>
+      <section class="timeline-mount" id="timeline-mount" aria-label="Lunar timeline"></section>
 
       <div class="toast" id="toast" role="alert" hidden>
         <p class="toast__message" id="error"></p>
         <div class="toast__actions">
-          <button class="ui-btn ui-btn--danger ui-btn--sm" id="retry" type="button" hidden>Reintentar conexión</button>
+          <button class="ui-btn ui-btn--danger ui-btn--sm" id="retry" type="button" hidden>Retry connection</button>
         </div>
       </div>
 

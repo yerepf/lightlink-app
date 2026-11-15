@@ -30,9 +30,9 @@ function input(frame: Frame) {
 /** Illustrative model: initial temperature -20 C, thermal time constants 6/12 h.
  * Visibility conditions are held through each source interval. */
 export function createPowerTelemetry(frames: readonly Frame[], initialTemperature = -20) {
-  if (!frames.length) throw new Error('Timeline vacío');
+  if (!frames.length) throw new Error('Empty timeline');
   const times = Float64Array.from(frames, f => Date.parse(f.timestamp_utc));
-  if (!Number.isFinite(initialTemperature) || times.some((t, i) => !Number.isFinite(t) || (i > 0 && t <= times[i - 1]))) throw new Error('Telemetría: entradas inválidas');
+  if (!Number.isFinite(initialTemperature) || times.some((t, i) => !Number.isFinite(t) || (i > 0 && t <= times[i - 1]))) throw new Error('Invalid telemetry inputs');
   const inputs = frames.map(input);
   function row(i: number, timestamp: number, battery: number, temperature: number): PowerTelemetry {
     return { timestamp_ms: timestamp, battery_pct: battery, solar_watts: inputs[i].solar,
@@ -52,7 +52,7 @@ export function createPowerTelemetry(frames: readonly Frame[], initialTemperatur
   return {
     power_telemetry,
     sample(timestamp: number): PowerTelemetry {
-      if (!Number.isFinite(timestamp)) throw new Error('Fecha inválida');
+      if (!Number.isFinite(timestamp)) throw new Error('Invalid date');
       const time = T.MathUtils.clamp(timestamp, times[0], times[times.length - 1]);
       const i = lowerIndex(times, time), next = advance(power_telemetry[i], i, time);
       return row(i, time, next.battery, next.temperature);
@@ -141,8 +141,8 @@ export function createScienceMarkers(candidates: ScienceCandidate[]) {
   const ctx = canvas.getContext('2d')!;
   ctx.fillStyle = SCENE_PALETTE.scienceLabelBackground; ctx.fillRect(0, 0, 1024, 160);
   ctx.textAlign = 'center'; ctx.fillStyle = SCENE_PALETTE.scienceLabelText; ctx.font = 'bold 38px system-ui';
-  ctx.fillText('Zona PSR (Posible Hielo de Agua)', 512, 65);
-  ctx.font = '28px system-ui'; ctx.fillText('Candidato topográfico · sin confirmar', 512, 119);
+  ctx.fillText('PSR candidate (possible water ice)', 512, 65);
+  ctx.font = '28px system-ui'; ctx.fillText('Terrain candidate · unconfirmed', 512, 119);
   const texture = new T.CanvasTexture(canvas); texture.colorSpace = T.SRGBColorSpace;
   const geometry = new T.SphereGeometry(.002, 12, 8), material = new T.MeshBasicMaterial({ color: SCENE_PALETTE.scienceMarker });
   const labelMaterial = new T.SpriteMaterial({ map: texture, transparent: true, depthTest: true, depthWrite: false });

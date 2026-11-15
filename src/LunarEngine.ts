@@ -305,7 +305,7 @@ export class LunarEngine {
   }
   relocate(point: LandingPoint): SiteData {
     if (!this.baseSite || !this.field || !this.timeline || ![point.x, point.z, point.slopeDeg].every(Number.isFinite)
-      || Math.max(Math.abs(point.x), Math.abs(point.z)) >= this.patchSize / 2) throw new Error('Punto fuera del DEM');
+      || Math.max(Math.abs(point.x), Math.abs(point.z)) >= this.patchSize / 2) throw new Error('Point is outside the elevation model');
     const site = analyseRelocation(this.baseSite, this.field, point.x, point.z, this.observerHeight);
     const time = this.timeline.state.timestampMs;
     this.landing = { ...point }; this.landingX = point.x; this.landingZ = point.z;

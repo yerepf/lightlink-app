@@ -1,43 +1,36 @@
-# Interfaz de Lunar Co-Visibility
+# Light&Link interface
 
-Desde la portada ilustrada de Light&Link, pulsa **Iniciar** para elegir entre **Modo Explorador** (`#explorador`) y **Mission Planner** (`#mision`). Puedes abrir cualquiera de los modos por su enlace directo o cambiar de uno a otro desde la cabecera. **Reiniciar** vuelve al inicio de las seis misiones. El menú conserva su arte y su astronauta; la animación se detiene si el sistema solicita reducir el movimiento.
+Select **Start**, then choose **Explorer** (`#explorer`) or **Mission Planner** (`#planner`). Switch modes from the header. **Restart** returns to the beginning of the Explorer campaign.
 
-## Modo Explorador
+## Explorer
 
-El recorrido carga la copia local de `Site07`, en el polo sur lunar. La historia se integra en la esquina inferior derecha de la escena 3D y propone seis misiones:
+The campaign uses the bundled `Site07` dataset. An astronaut speaks from the left of the dialogue panel while the map and timeline remain interactive. Select **Audio off** to turn on music, sound effects and narration. **Replay voice** repeats the current passage. When a recording is unavailable, the app uses the device's English speech synthesis, if available.
 
-1. **¿Dónde estamos?** Orienta la cámara o pulsa **Entendido, ¡empecemos!** para comenzar.
-2. **Alunizaje en peligro.** Activa el reubicador y selecciona un vértice verde (pendiente menor de 10°). El recorrido no avanza con una pendiente de riesgo.
-3. **Luz y señal.** Busca en la línea de tiempo una muestra en la que el Sol y la Tierra sean visibles a la vez. Si el lugar elegido no tiene ninguna en la cobertura disponible, vuelve al mapa y escoge otro punto verde.
-4. **¿Cuánto dura la misión?** Responde si la ventana satisface el requisito de ocho horas seguidas de luz y señal. La autonomía en sombra es una estimación de la batería simulada.
-5. **De dónde salen los datos.** Consulta el papel del altímetro LOLA para el relieve y de JPL Horizons para las efemérides.
-6. **Compara antes de aterrizar.** Completa una comparación válida, cierra el diálogo y recoge la insignia. La insignia reconoce el recorrido educativo y no certifica la planificación de vuelo.
+1. **Welcome to the lunar south pole.** Rotate the view or select **Let's begin**.
+2. **A landing on the wrong slope.** Activate relocation and choose a green point with a slope below 10°.
+3. **Find light and signal.** Scrub the timeline to a sample with both the Sun and Earth visible. If there is no such sample, try a different landing point.
+4. **Can we run the experiment?** Decide whether the visible window covers eight continuous hours. Battery life in shadow comes from the power simulation.
+5. **How we know what we see.** Read about the LOLA terrain and JPL Horizons ephemerides.
+6. **Compare before you commit.** Complete a valid comparison and return to the astronaut to claim the educational badge.
 
 ## Mission Planner
 
-La escena conserva el HUD con hora UTC, Sol, Tierra/DTE y batería simulada. El panel de controles reúne **Sitio**, **Vista**, **Capas**, **Nuevo punto** e **Información**. En **Detalles** puedes ver los resultados, la cobertura, la energía, el gráfico de elevaciones frente al horizonte y las descargas **CSV** y **JSON**. Las descargas se generan en el navegador para el análisis activo, incluida la reubicación si corresponde. El CSV enumera las ventanas; el JSON incluye además las horas acumuladas, la máscara del horizonte y las muestras de la línea de tiempo.
+The HUD shows UTC, Sun and Earth visibility, and simulated battery. Open **Details** for coverage, terrain diagnostics, elevation plots, and **Export CSV** or **Export JSON**. CSV contains the active windows. JSON also contains totals, the horizon profile, and timeline samples.
 
-- **Reubicar:** en **Sitio**, pulsa **Activar reubicador** y haz clic o toca un vértice del mapa. Con el teclado, mueve el cursor con las flechas, confirma con **Enter** o **Espacio** y cancela con **Escape**. El mapa distingue pendiente verde (< 10°), intermedia (10°–15°) y roja (> 15°). El Planner permite evaluar también posiciones de riesgo.
-- **Comparar:** abre **Comparar** en la cabecera. Selecciona las dos opciones, incluida la posición activa o reubicada. Por defecto ambas se evalúan en el mismo intervalo UTC de cobertura común. Con **Elegir dos fechas UTC**, indica un inicio por opción y una duración común que quepa en ambas coberturas. El diálogo muestra las horas de Sol, Tierra/DTE y co-visibilidad, el porcentaje de terreno con pendiente menor de 10° y la procedencia de cada serie. La recomendación se basa en las horas de co-visibilidad y se omite si solo una de las series es simulada.
-- **Recorrer el tiempo:** arrastra el cabezal o usa las flechas para avanzar por muestras (`Shift` multiplica el salto por diez); **Home** y **End** llevan a los extremos. Hay controles de reproducción, bucle y velocidad, y se puede ampliar con la rueda o con `+` y `-`. El modo en vivo requiere efemérides reales y cobertura para la hora actual.
+- **Relocate.** Select **Activate relocation** under **Lunar site**. Click or tap a terrain point, or use arrow keys and **Enter**. Press **Escape** to exit. The map shows slopes below 10° in green, 10°–15° in amber, and above 15° in red.
+- **Compare.** Select two sites or compare the active point with another site. The default time window uses overlapping coverage. To compare dates, enter two UTC start times and a shared duration. The results include Sun visibility, direct-to-Earth visibility, co-visibility, data sources and the share of the terrain patch below 10°.
+- **Scrub time.** Drag the playhead or step through samples with the arrow keys. Hold **Shift** for ten-sample steps. **Home** and **End** jump to the edges. Use the wheel or **+** and **−** to zoom. Live mode requires real ephemerides that cover the current time.
 
-La brújula muestra el norte verdadero corregido por convergencia de cuadrícula en las vistas de superficie y órbita, y fija el norte arriba en vista de mapa. Los paneles nuevos combinan superficies oscuras translúcidas y acentos verdes con las fuentes existentes. El Planner conserva su distribución densa; en pantallas estrechas los controles pasan a la parte inferior, los detalles se abren sobre la escena y el comparador se adapta al ancho disponible. El sistema visual del Planner se documenta en [DESIGN.md](DESIGN.md).
+The compass accounts for grid convergence in orbital and surface views. Map view puts north at the top. [Planner design reference](DESIGN.md)
 
-## Datos, ejecución y límites
+## Run the app and interpret the data
 
-Para ejecutar el demo en desarrollo, instala las dependencias con `npm ci` y arranca Vite con `npm run dev:frontend`. `npm run build` genera `dist-demo/`. Para usarlo sin una API remota, sirve esa carpeta desde un servidor HTTP local o estático; abrir `index.html` directamente desde disco no sirve los recursos que la app solicita. La API es opcional: el cliente usa `VITE_API_URL` si se configura al compilar y, si no, usa `/api`. En Vite, `BACKEND_URL` define el destino del proxy de `/api`.
+Install dependencies with `npm ci`, then run `npm run dev:frontend`. `npm run build` creates `dist-demo/`, which must be served over HTTP. The app uses `/api` by default. Set `VITE_API_URL` at build time to use a different endpoint, or set `BACKEND_URL` to change the Vite proxy target.
 
-El paquete incluye datos de `Site01` y `Site07` para alturas de observación de 2 y 5 m, con los mapas de elevación originales de 16 bits y las series del backend en el commit `22489b4d12a34eced448dfede9e72986fdf70908`. Las copias locales conservan la cobertura incluida; no generan efemérides ni amplían fechas. Para regenerarlas desde la raíz, con el repositorio del backend disponible en `backend/`, ejecuta `node --import tsx scripts/prepare-offline.ts`.
+The bundled data includes 2 m and 5 m observer profiles for `Site01` and `Site07`, with the original 16-bit terrain maps and backend series from commit `22489b4d12a34eced448dfede9e72986fdf70908`. To regenerate the copies, place the backend checkout in `backend/` and run `node --import tsx scripts/prepare-offline.ts`.
 
-La reubicación toma la pendiente de la malla sin exageración vertical y recalcula un horizonte de 360 rayos sobre el modelo digital de elevación (DEM) original. Usa los ángulos base de JPL Horizons y no intenta representar relieve fuera del parche. El cálculo cuesta `O(360 × muestras por rayo + muestras temporales)`; consultar una elevación en el horizonte regular cuesta `O(1)`. Para medir horas, cada estado booleano se mantiene hasta la próxima muestra, sin interpolarlo ni sumar tiempo después de la última. El porcentaje por pendiente estima el área en la cuadrícula del parche DEM, sin contar su borde exterior.
+Relocation uses slopes from the unexaggerated terrain and traces 360 rays within the original elevation patch. It retains the base site's JPL Horizons angles. The recomputation costs O(360 × samples per ray + timeline samples). Lookup in a regular horizon profile is O(1). Visibility durations hold each Boolean value until the next sample. DTE measures geometric line of sight, and the battery model is simulated.
 
-DTE representa línea de vista geométrica, sin predecir el rendimiento de un enlace. Este demo no certifica alunizajes ni operaciones de vuelo. No hay autenticación, gestión de equipos ni guardado de escenarios en la revisión examinada. **Nuevo punto** requiere un backend que acepte `POST /sites`; el backend local requiere Redis para el registro y puede devolver `pending_data` mientras el sitio carezca de máscara, efemérides y mapa de elevación específicos.
+**New site** requires a backend that accepts `POST /sites`. The local backend uses Redis for registration and returns `pending_data` while site data is still missing.
 
-## Archivos y comprobaciones
-
-- `index.html` y `demo/start.ts`: portada, selector de modos, navegación por fragmento y carga inicial de la escena.
-- `demo/main.ts` y `demo/apiClient.ts`: coordinación de la escena, los controles y la procedencia de los datos.
-- `demo/ui/ExplorerStoryMode.tsx`, `SiteComparator.tsx`, `MissionAnalysis.ts` y `flight.css`: recorrido, comparación, análisis y estilos de las nuevas superficies.
-- `src/relocation.ts` y `src/missionMetrics.ts`: horizonte a partir del DEM y métricas temporales.
-
-`npm test` ejecuta las pruebas del repositorio; `npm run build` comprueba TypeScript y compila el demo. No hay un script `lint` configurado.
+`npm test` runs the tests. `npm run build` checks TypeScript and bundles the app.

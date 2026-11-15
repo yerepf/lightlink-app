@@ -31,11 +31,11 @@ export class ApiClient {
   }
 
   async loadBundled(id: string, height: 2 | 5, signal?: AbortSignal): Promise<SiteAsset> {
-    if (!OFFLINE_SITES.some(site => id === site)) throw new Error('No hay una copia local para este sitio.');
+    if (!OFFLINE_SITES.some(site => id === site)) throw new Error('There is no local copy of this site.');
     const res = await fetch(`${directory}/${id}-${height}.json`, { signal });
-    if (!res.ok) throw new Error(`Copia local no disponible: ${id} (${res.status}).`);
+    if (!res.ok) throw new Error(`Local copy unavailable: ${id} (${res.status}).`);
     const site = adaptBackendSite(await res.json(), directory);
-    if (site.site_id !== id) throw new Error('La copia local no coincide con el sitio solicitado.');
+    if (site.site_id !== id) throw new Error('The local copy does not match the requested site.');
     return { site, field: await decodeHeightmap16(site.heightmap_url, signal ?? new AbortController().signal), origin: 'bundled' };
   }
 

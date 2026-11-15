@@ -7,16 +7,16 @@ export function angleChart(site: SiteData) {
   const frames = site.ephemeris_timeline;
   const { start, end } = coverage(frames);
   const tracks = [
-    { label: 'Sol', color: '#e8a93c', dotted: false, values: frames.map(f => f.sun.elevation_deg) },
-    { label: 'Horizonte · Sol', color: '#e8a93c', dotted: true, values: frames.map(f => horizonElevation(site.horizon_mask, f.sun.azimuth_deg)) },
-    { label: 'Tierra', color: '#7fb0c4', dotted: false, values: frames.map(f => f.earth.elevation_deg) },
-    { label: 'Horizonte · Tierra', color: '#7fb0c4', dotted: true, values: frames.map(f => horizonElevation(site.horizon_mask, f.earth.azimuth_deg)) },
+    { label: 'Sun', color: '#e8a93c', dotted: false, values: frames.map(f => f.sun.elevation_deg) },
+    { label: 'Horizon · Sun', color: '#e8a93c', dotted: true, values: frames.map(f => horizonElevation(site.horizon_mask, f.sun.azimuth_deg)) },
+    { label: 'Earth', color: '#7fb0c4', dotted: false, values: frames.map(f => f.earth.elevation_deg) },
+    { label: 'Horizon · Earth', color: '#7fb0c4', dotted: true, values: frames.map(f => horizonElevation(site.horizon_mask, f.earth.azimuth_deg)) },
   ];
   const values = tracks.flatMap(track => track.values);
   const low = Math.floor(Math.min(0, ...values) / 5) * 5;
   const high = Math.max(low + 5, Math.ceil(Math.max(0, ...values) / 5) * 5);
   const y = (angle: number) => 10 + (high - angle) / (high - low) * 86;
-  const graph = svgEl('svg', { viewBox: '0 0 296 119', role: 'img', 'aria-label': 'Elevación del Sol y la Tierra frente al horizonte local, en grados y por fecha UTC' });
+  const graph = svgEl('svg', { viewBox: '0 0 296 119', role: 'img', 'aria-label': 'Sun and Earth elevation against the local horizon, in degrees by UTC date' });
   for (const angle of new Set([high, 0, low])) {
     graph.append(svgEl('path', { d: `M28 ${y(angle)}H292`, stroke: '#85977b55' }));
     const label = svgEl('text', { x: 0, y: y(angle) + 3, fill: 'currentColor', 'font-size': 9 });
@@ -47,6 +47,6 @@ export function downloadAnalysis(format: 'csv' | 'json', site: SiteData, source:
     ...windows.map(w => [w.condition, w.start_utc, w.end_utc, w.duration_hours, source, point?.x, point?.z, point?.slopeDeg].join(','))].join('\r\n') + '\r\n';
   const blob = new Blob([format === 'json' ? JSON.stringify(json, null, 2) : csv], { type: format === 'json' ? 'application/json' : 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-  const link = el('a', { href: url, download: `${site.site_id}${point ? '-reubicado' : ''}.${format}` });
+  const link = el('a', { href: url, download: `${site.site_id}${point ? '-relocated' : ''}.${format}` });
   link.click(); window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
