@@ -43,6 +43,15 @@ export class ApiClient {
     return this.loadPrecomputed(this.bundledProfile(id, height, signal), directory, id, 'bundled', signal);
   }
 
+  async loadVisibilityProfile(id: string, height: 2 | 5, signal: AbortSignal, range?: SiteRange) {
+    try {
+      return { site: await this.backend.loadSite(id, height, signal, range), source: 'API' };
+    } catch (error) {
+      if (range || !OFFLINE_SITES.some(site => id === site) || !mayUseBundle(error, signal)) throw error;
+      return { site: await this.bundledProfile(id, height, signal), source: 'Local copy' };
+    }
+  }
+
   private async bundledProfile(id: string, height: 2 | 5, signal?: AbortSignal): Promise<SiteData> {
     const res = await fetch(`${directory}/${id}-${height}.json`, { signal });
     if (!res.ok) throw new Error(`Local copy unavailable: ${id} (${res.status}).`);

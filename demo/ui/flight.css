@@ -295,6 +295,18 @@
 .compare__highlight { color: #93ffbe; background: #0d2218; }
 .compare__recommendation { margin: 13px 0 0; color: var(--flight-accent); font-weight: 650; }
 .compare__fineprint { margin: 7px 0 0; font-size: .77rem; color: var(--flight-muted); }
+.launch-delay__mission { margin: 10px 0 0; color: var(--flight-accent); font-size: .8rem; overflow-wrap: anywhere; }
+.launch-delay__form { display: grid; gap: 12px; }
+.compare__dates.launch-delay__dates { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, 1fr); }
+.launch-delay__windows { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 16px 0 8px; }
+.launch-delay__windows dt { margin-bottom: 3px; color: var(--flight-muted); font-size: .75rem; }
+.launch-delay__windows dd { margin: 0; font-size: .83rem; font-variant-numeric: tabular-nums; }
+.launch-delay__table td { white-space: nowrap; }
+@media (max-width: 520px) {
+  .compare__dates.launch-delay__dates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .launch-delay__dates > :first-child { grid-column: 1 / -1; }
+  .launch-delay__table { font-size: .74rem; }
+}
 .mission-chart { margin: 6px 0 0; color: var(--flight-muted); }
 .mission-chart > svg { display: block; width: 100%; min-height: 105px; }
 .mission-chart figcaption { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11px; }

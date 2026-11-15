@@ -2,7 +2,7 @@ import { Vector3 } from 'three';
 import { LunarEngine } from '../src/index';
 import type { LandingPoint } from '../src/LunarEngine';
 import type { SiteData, TimeState } from '../src/data';
-import { coverage } from '../src/missionMetrics';
+import { coverage, HOUR } from '../src/missionMetrics';
 import { LiveClock } from '../src/LiveClock';
 import { BackendError, customDateRange, validateCoordinates, type NewSite, type SiteRange } from '../src/backend';
 import { announce, el, formatSigned, formatUtc, isMobileViewport, setText, clamp } from './ui/dom';
@@ -25,6 +25,7 @@ import { PlannerMissions } from './ui/PlannerMissions';
 import type { MissionRouteSite } from './ui/MissionRoute';
 import { ExplorerStoryMode } from './ui/ExplorerStoryMode';
 import { SiteComparator } from './ui/SiteComparator';
+import { LaunchDelay } from './ui/LaunchDelay';
 import { angleChart, downloadAnalysis } from './ui/MissionAnalysis';
 
 const uiEvents = new AbortController();
@@ -73,6 +74,7 @@ const plannerTools = byId('planner-tools');
 const activeMissionName = byId('active-mission-name');
 const moveLander = byId<HTMLButtonElement>('move-lander');
 const openMissions = byId<HTMLButtonElement>('open-missions');
+const openLaunchDelay = byId<HTMLButtonElement>('open-launch-delay');
 
 const accounts = new PlannerApi(API_BASE);
 const api = new ApiClient(() => accounts.token);
@@ -451,6 +453,22 @@ const comparator = new SiteComparator(appShell, async (id, abort) => {
   if (id.startsWith('custom_') && !customRanges.has(id)) customRanges.set(id, customDateRange(currentTime));
   return api.loadSite(id, Number(lastHeight) as 2 | 5, abort, selectedRange(id), mode === 'explorer' || catalogOffline);
 }, recommendation => story.compared(recommendation));
+const launchDelay = new LaunchDelay(appShell, api);
+
+function compareLaunchDelay(mission = activeMission) {
+  const sites = new Map<string, MissionRouteSite>(bundledOptions.map(site => [site.value, { id: site.value, label: site.label }]));
+  for (const site of plannerSiteOptions) sites.set(site.id, site);
+  for (const id of mission?.site_ids ?? []) {
+    sites.set(id, { id, label: mission?.sites?.find(site => site.site_id === id)?.name ?? sites.get(id)?.label ?? id });
+  }
+  const missionStart = Date.parse(mission?.start_utc ?? '');
+  const missionEnd = Date.parse(mission?.end_utc ?? '');
+  const start = Number.isFinite(missionStart) ? missionStart : Math.floor(currentTime / HOUR) * HOUR;
+  const duration = Number.isFinite(missionEnd - missionStart) ? Math.floor((missionEnd - missionStart) / HOUR) : 24;
+  launchDelay.open({ sites: [...sites.values()], plannedSite: mission?.site_ids[0] ?? (lastSelection || TRAINING_SITE),
+    start, hours: Math.max(1, duration), height: Number(mission?.observer_height_m ?? lastHeight) === 5 ? 5 : 2,
+    mission: mission?.name });
+}
 
 const missions = new PlannerMissions(accounts, appShell, {
   sites: () => plannerSiteOptions.length ? [...plannerSiteOptions] : Array.from(siteSelect.select.options).filter(option => !option.disabled)
@@ -470,12 +488,14 @@ const missions = new PlannerMissions(accounts, appShell, {
   },
   activeMission: () => activeMission,
   openMission: activateMission,
+  compareLaunchDelay,
   leaveMission: () => leaveMission(),
 });
 
 listen(compareOpen, 'click', openComparator);
 listen(storyReset, 'click', restartStory);
 listen(openMissions, 'click', () => missions.open());
+listen(openLaunchDelay, 'click', () => compareLaunchDelay());
 listen(moveLander, 'click', () => { setStatusOpen(false); setRelocating(!relocating); });
 
 function setPanelOpen(open: boolean): void {
@@ -1189,6 +1209,7 @@ export function setMode(next: 'explorer' | 'planner') {
   setStatusOpen(false);
   setRelocating(false);
   comparator.close();
+  launchDelay.close();
   if (next === 'explorer') {
     missions.close();
     if (activeMission) leaveMission();
@@ -1206,7 +1227,7 @@ export function setMode(next: 'explorer' | 'planner') {
 
 export function setExplorerVisibility(visible: boolean) {
   story.setPageVisible(visible && !appShell.hidden && !document.hidden);
-  if (appShell.hidden) missions.close();
+  if (appShell.hidden) { missions.close(); launchDelay.close(); }
 }
 
 retryButton.addEventListener('click', () => void retryAction(), { signal });
@@ -1228,7 +1249,7 @@ if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     disposed = true;
     request?.abort();
-    catalogRequest?.abort(); comparator.close(); story.close(); missions.close();
+    catalogRequest?.abort(); comparator.close(); story.close(); missions.close(); launchDelay.close();
     storyTimelineSize.disconnect();
     if (cursorFrame) cancelAnimationFrame(cursorFrame);
     window.clearInterval(compassTimer);

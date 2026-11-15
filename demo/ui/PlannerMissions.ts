@@ -28,6 +28,7 @@ export class PlannerMissions {
     sessionChanged(): void;
     activeMission(): Mission | undefined;
     openMission(mission: Mission): void;
+    compareLaunchDelay(mission: Mission): void;
     leaveMission(): void;
   }) {
     this.dialog.append(el('header', { class: 'flight-dialog__head' }, this.title, this.button('Close', () => this.close())), this.status, this.content);
@@ -223,6 +224,7 @@ export class PlannerMissions {
       el('p', {}, `${mission.observer_height_m ?? 2} m observer height · ${mission.step_hours ?? 1} h sample step`),
       el('p', { class: 'flight-dialog__intro' }, 'The mission shares its sites, dates and sampling settings. Lander moves apply to your current view.'),
       el('div', { class: 'planner-dialog__actions' }, this.button('Load in planner', () => { this.callbacks.openMission(mission); this.close(); }, true),
+        this.button('Launch delay', () => { this.close(); this.callbacks.compareLaunchDelay(mission); }),
         this.button('Edit mission', () => this.showEditor(mission)), this.button('Back to missions', () => this.showList())),
     );
     if (mission.description) this.content.append(el('p', { class: 'planner-description' }, mission.description));
@@ -326,6 +328,7 @@ export class PlannerMissions {
     this.content.replaceChildren(route.root,
       el('div', { class: 'planner-dialog__actions' },
         this.button('Load in planner', () => { this.callbacks.openMission(mission); this.close(); }, true),
+        this.button('Launch delay', () => { this.close(); this.callbacks.compareLaunchDelay(mission); }),
         this.button('Back to missions', () => this.showList())));
     this.disposeRoute = route.mount();
   }
