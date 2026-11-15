@@ -206,6 +206,72 @@
 .planner-dialog__body h3 { margin-top: 4px; font-size: .96rem; }
 .planner-dialog__body p { font-size: .86rem; }
 .planner-dialog__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.planner-dialog--route { width: min(720px, calc(100vw - 24px)); }
+.planner-extra-sites { color: var(--flight-muted); font-size: .86rem; }
+.planner-extra-sites summary { width: fit-content; cursor: pointer; margin-bottom: 6px; }
+.mission-route { display: grid; gap: 12px; min-width: 0; }
+.mission-route__map {
+  position: relative;
+  isolation: isolate;
+  height: clamp(230px, 47dvh, 380px);
+  overflow: hidden;
+  border: 1px solid #263b3c;
+  border-radius: 10px;
+  background: radial-gradient(ellipse at 50% 48%, #172123 0%, #0a1013 48%, #050809 88%);
+}
+.mission-route__map canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+.mission-route__map canvas:active { cursor: grabbing; }
+.mission-route__map[data-fallback] canvas { visibility: hidden; }
+.mission-route__focus { position: absolute; top: 10px; right: 10px; z-index: 1; }
+.mission-route__hint {
+  position: absolute;
+  bottom: 9px;
+  left: 10px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: #0a1013;
+  color: #c6d5d2;
+  pointer-events: none;
+}
+.mission-route__sites { display: flex; align-items: center; gap: clamp(4px, 2vw, 16px); }
+.mission-route__sites dl { margin: 0; min-width: 0; }
+.mission-route__sites > svg { flex: 0 0 20px; height: 14px; color: #ffdc88; }
+.mission-route__waypoint { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mission-route__waypoint dt { color: var(--flight-muted); font-size: .75rem; }
+.mission-route__waypoint dd { margin: 2px 0 0; font-size: .95rem; font-weight: 650; overflow-wrap: anywhere; }
+.mission-route__symbol, .mission-route__lander { display: grid; place-items: center; width: 26px; height: 26px; flex: 0 0 26px; color: #ffdc88; }
+.mission-route__symbol--start::before { content: ''; width: 8px; height: 8px; background: currentColor; border-radius: 50%; }
+.mission-route__destination {
+  position: absolute;
+  display: none;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffdc88;
+  pointer-events: none;
+}
+.mission-route__destination.is-visible { display: block; }
+.mission-route__destination::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 19px;
+  height: 1px;
+  background: #ffdc88;
+  transform: rotate(-38deg);
+  transform-origin: left;
+}
+.mission-route__lander {
+  position: absolute;
+  bottom: 4px;
+  left: 17px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: #141b1c;
+}
+.mission-route__symbol svg, .mission-route__lander svg { width: 17px; height: 17px; }
 .planner-account, .planner-list > li { display: flex; justify-content: space-between; align-items: center; gap: 8px; overflow-wrap: anywhere; }
 .planner-account { padding-bottom: 9px; border-bottom: 1px solid var(--flight-line); }
 .planner-account small, .planner-list small { display: block; margin-top: 3px; color: var(--flight-muted); }

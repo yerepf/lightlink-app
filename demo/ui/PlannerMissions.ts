@@ -1,8 +1,8 @@
 import { BackendError } from '../../src/backend';
 import { PlannerApi, type Invitation, type Mission, type MissionInput, type PlannerUser } from '../plannerApi';
 import { el } from './dom';
+import { createMissionRoute, type MissionRouteSite } from './MissionRoute';
 
-type SiteChoice = { id: string; label: string };
 type Draft = Pick<MissionInput, 'site_ids' | 'start_utc' | 'end_utc' | 'observer_height_m'>;
 const field = (label: string, input: HTMLElement) => el('label', { class: 'compare__field' }, label, input);
 const utc = (value: string) => `${value.slice(0, 16).replace('T', ' ')} UTC`;
@@ -15,10 +15,13 @@ export class PlannerMissions {
   private user?: PlannerUser;
   private missions: Mission[] = [];
   private invitations: Invitation[] = [];
+  private missionsUnavailable = false;
+  private invitationNotice = '';
+  private disposeRoute?: () => void;
   private busy = false;
 
   constructor(private readonly api: PlannerApi, mount: HTMLElement, private readonly callbacks: {
-    sites(): SiteChoice[];
+    sites(): MissionRouteSite[];
     draft(): Draft;
     sessionChanged(): void;
     activeMission(): Mission | undefined;
@@ -26,6 +29,7 @@ export class PlannerMissions {
     leaveMission(): void;
   }) {
     this.dialog.append(el('header', { class: 'flight-dialog__head' }, this.title, this.button('Close', () => this.close())), this.status, this.content);
+    this.dialog.addEventListener('close', () => { if (!this.dialog.open) this.clearRoute(); });
     mount.append(this.dialog);
   }
 
@@ -47,7 +51,13 @@ export class PlannerMissions {
     }, 'Could not load missions. Close and reopen this window to retry.');
   }
 
-  close() { if (this.dialog.open) this.dialog.close(); }
+  close() { if (this.dialog.open) this.dialog.close(); this.clearRoute(); }
+
+  private clearRoute() {
+    this.disposeRoute?.();
+    this.disposeRoute = undefined;
+    this.dialog.classList.remove('planner-dialog--route');
+  }
 
   private button(label: string, onClick?: () => void, primary = false) {
     const button = el('button', { class: `flight-button${primary ? ' flight-button--primary' : ''}`, type: onClick ? 'button' : 'submit' }, label);
@@ -58,6 +68,7 @@ export class PlannerMissions {
   private endSession() {
     this.api.clearSession();
     this.user = undefined; this.missions = []; this.invitations = [];
+    this.missionsUnavailable = false; this.invitationNotice = '';
     this.callbacks.sessionChanged();
   }
 
@@ -104,8 +115,7 @@ export class PlannerMissions {
         }
         this.user = await this.api.login(email.value.trim(), entered);
         this.callbacks.sessionChanged();
-        try { await this.loadList(); }
-        catch (error) { this.showList(); throw error; }
+        await this.loadList();
       }, registering ? 'Could not create your account. Check your details or sign in if you already registered.'
         : 'Could not sign in or load your missions. Check your credentials and connection.');
     });
@@ -113,11 +123,24 @@ export class PlannerMissions {
   }
 
   private async loadList() {
-    [this.missions, this.invitations] = await Promise.all([this.api.missions(), this.api.invitations()]);
+    const [missions, invitations] = await Promise.allSettled([this.api.missions(), this.api.invitations()]);
+    for (const result of [missions, invitations]) {
+      if (result.status === 'rejected' && result.reason instanceof BackendError && result.reason.status === 401) throw result.reason;
+    }
+    this.missionsUnavailable = missions.status === 'rejected';
+    if (missions.status === 'fulfilled') this.missions = missions.value;
+    this.invitationNotice = '';
+    if (invitations.status === 'fulfilled') this.invitations = invitations.value;
+    else {
+      this.invitations = [];
+      this.invitationNotice = invitations.reason instanceof BackendError && invitations.reason.status === 404
+        ? 'Invitations are unavailable on this server.' : 'Could not load invitations. Select Refresh to try again.';
+    }
     this.showList();
   }
 
   private showList() {
+    this.clearRoute();
     this.title.textContent = 'Missions';
     const active = this.callbacks.activeMission();
     const list = el('ul', { class: 'planner-list' }, ...this.missions.map(mission => el('li', {},
@@ -137,8 +160,11 @@ export class PlannerMissions {
       ...(active ? [el('div', { class: 'planner-account' }, el('span', {}, `Active mission: ${active.name}`), this.button('Leave mission', () => { this.callbacks.leaveMission(); this.showList(); }))] : []),
       el('div', { class: 'planner-dialog__actions' }, this.button('New mission', () => this.showEditor(), true),
         this.button('Refresh', () => void this.run('Refreshing…', () => this.loadList(), 'Could not refresh missions. Try again.'))),
-      el('h3', {}, 'Your missions'), list.childElementCount ? list : el('p', { class: 'flight-dialog__intro' }, 'Create a mission or accept an invitation.'),
-      el('h3', {}, 'Invitations'), inbox.childElementCount ? inbox : el('p', { class: 'flight-dialog__intro' }, 'No pending invitations.'),
+      el('h3', {}, 'Your missions'),
+      ...(this.missionsUnavailable ? [el('p', { class: 'flight-dialog__intro', role: 'status' }, 'Could not load missions. Select Refresh to try again.')] : []),
+      ...(list.childElementCount ? [list] : !this.missionsUnavailable ? [el('p', { class: 'flight-dialog__intro' }, 'Create a mission or accept an invitation.')] : []),
+      el('h3', {}, 'Invitations'), inbox.childElementCount ? inbox
+        : el('p', { class: 'flight-dialog__intro' }, this.invitationNotice || 'No pending invitations.'),
     );
   }
 
@@ -154,8 +180,14 @@ export class PlannerMissions {
     void this.run('Loading mission…', async () => {
       const mission = await this.api.mission(id);
       if (mission.owner_id === this.user?.id) {
-        const [members, sent] = await Promise.all([this.api.members(id), this.api.sentInvitations(id)]);
-        this.showMission(mission, members, sent);
+        try {
+          const [members, sent] = await Promise.all([this.api.members(id), this.api.sentInvitations(id)]);
+          this.showMission(mission, members, sent);
+        } catch (error) {
+          if (error instanceof BackendError && error.status === 401) throw error;
+          this.showMission(mission);
+          this.content.append(el('p', { class: 'flight-dialog__intro' }, 'Collaborator controls are currently unavailable.'));
+        }
       } else this.showMission(mission);
     }, 'Could not open this mission. Refresh the list to check your access.');
   }
@@ -164,7 +196,7 @@ export class PlannerMissions {
     this.title.textContent = mission.name;
     this.content.replaceChildren(
       el('p', { class: 'flight-dialog__intro' }, `${utc(mission.start_utc)} to ${utc(mission.end_utc)}`),
-      el('p', {}, `Sites: ${mission.site_ids.map(id => mission.sites.find(site => site.site_id === id)?.name ?? id).join(', ')}`),
+      el('p', {}, `Sites: ${mission.site_ids.map(id => mission.sites?.find(site => site.site_id === id)?.name ?? id).join(', ')}`),
       el('p', {}, `${mission.observer_height_m ?? 2} m observer height · ${mission.step_hours ?? 1} h sample step`),
       el('p', { class: 'flight-dialog__intro' }, 'The mission shares its sites, dates and sampling settings. Lander moves apply to your current view.'),
       el('div', { class: 'planner-dialog__actions' }, this.button('Load in planner', () => { this.callbacks.openMission(mission); this.close(); }, true),
@@ -204,17 +236,38 @@ export class PlannerMissions {
     height.value = String(draft.observer_height_m ?? 2);
     const step = el('input', { type: 'number', min: 1, max: 24, step: 1, required: true, value: mission?.step_hours ?? 1 });
     const choices = this.callbacks.sites();
-    for (const id of draft.site_ids) if (!choices.some(site => site.id === id)) choices.push({ id, label: mission?.sites.find(site => site.site_id === id)?.name ?? id });
+    for (const id of draft.site_ids) if (!choices.some(site => site.id === id)) choices.push({ id, label: mission?.sites?.find(site => site.site_id === id)?.name ?? id });
     const checkboxes = choices.map(site => el('input', { type: 'checkbox', value: site.id, checked: draft.site_ids.includes(site.id) }));
-    const siteFields = el('fieldset', { class: 'planner-sites' }, el('legend', {}, 'Sites'),
+    const startSite = el('select', { required: true }, ...choices.map(site => new Option(site.label, site.id)));
+    const destination = el('select', {}, new Option('No destination', ''), ...choices.map(site => new Option(site.label, site.id)));
+    startSite.value = draft.site_ids[0] ?? choices[0]?.id ?? '';
+    const updateDestinations = () => {
+      for (const option of Array.from(destination.options)) option.disabled = !!option.value && option.value === startSite.value;
+      if (destination.value === startSite.value) destination.value = '';
+      for (const box of checkboxes) {
+        box.disabled = box.value === startSite.value || box.value === destination.value;
+        if (box.disabled) box.checked = false;
+      }
+    };
+    startSite.addEventListener('change', updateDestinations);
+    destination.addEventListener('change', updateDestinations);
+    if (!mission) updateDestinations();
+    const siteList = el('fieldset', { class: 'planner-sites' }, el('legend', {}, mission ? 'Sites' : 'Additional sites'),
       ...choices.map((site, index) => el('label', {}, checkboxes[index], site.label)));
+    if (!mission) for (const box of checkboxes) box.checked = false;
+    const siteFields = mission ? siteList
+      : el('div', { class: 'compare__choices' }, field('Start site', startSite), field('Destination site', destination));
     const form = el('form', { class: 'planner-form' }, field('Mission name', name), field('Description (optional)', description), siteFields,
+      mission ? null : el('details', { class: 'planner-extra-sites' }, el('summary', {}, 'Add more sites'), siteList),
       el('div', { class: 'compare__choices' }, field('Start (UTC)', start), field('End (UTC)', end), field('Observer height', height), field('Sample step (hours)', step)),
       el('div', { class: 'planner-dialog__actions' }, this.button('Save mission', undefined, true), this.button('Cancel', () => this.showList())));
     form.addEventListener('submit', event => {
       event.preventDefault();
       if (this.busy) return;
-      const siteIds = checkboxes.filter(box => box.checked).map(box => box.value);
+      const selected = checkboxes.filter(box => box.checked).map(box => box.value);
+      const siteIds = mission
+        ? [...mission.site_ids.filter(id => selected.includes(id)), ...selected.filter(id => !mission.site_ids.includes(id))]
+        : [startSite.value, ...selected.filter(id => id !== startSite.value && id !== destination.value), destination.value].filter(Boolean);
       const startUtc = `${start.value}:00Z`, endUtc = `${end.value}:00Z`;
       const hours = (Date.parse(endUtc) - Date.parse(startUtc)) / 3600000;
       if (!name.value.trim() || siteIds.length < 1 || siteIds.length > 20 || !(hours > 0 && hours <= 62 * 24)) {
@@ -224,10 +277,30 @@ export class PlannerMissions {
       void this.run('Saving mission…', async () => {
         const saved = await this.api.saveMission({ name: name.value.trim(), description: description.value.trim(), site_ids: siteIds,
           start_utc: startUtc, end_utc: endUtc, step_hours: Number(step.value), observer_height_m: Number(height.value) }, mission?.id);
-        await this.loadList();
-        this.status.textContent = `Saved ${saved.name}. Select View mission to load it.`;
+        this.missions = [saved, ...this.missions.filter(item => item.id !== saved.id)];
+        if (!mission && this.dialog.open) this.showCreatedMission(saved, choices);
+        else {
+          this.showList();
+          this.status.textContent = `Saved ${saved.name}.`;
+        }
       }, 'Could not save the mission. Check the dates, sites and your current access.');
     });
     this.content.replaceChildren(form);
+  }
+
+  private showCreatedMission(mission: Mission, choices: MissionRouteSite[]) {
+    this.title.textContent = mission.name;
+    this.dialog.classList.add('planner-dialog--route');
+    const sites = mission.site_ids.map(id => {
+      const saved = mission.sites?.find(site => site.site_id === id);
+      const chosen = choices.find(site => site.id === id);
+      return { id, label: saved?.name ?? chosen?.label ?? id, coordinates: saved?.coordinates ?? chosen?.coordinates };
+    });
+    const route = createMissionRoute(sites[0], sites.length > 1 ? sites.at(-1) : undefined);
+    this.content.replaceChildren(route.root,
+      el('div', { class: 'planner-dialog__actions' },
+        this.button('Load in planner', () => { this.callbacks.openMission(mission); this.close(); }, true),
+        this.button('Back to missions', () => this.showList())));
+    this.disposeRoute = route.mount();
   }
 }

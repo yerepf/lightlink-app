@@ -22,6 +22,7 @@ import { headingFromDirection, trueHeading } from './ui/compassMath';
 import { API_BASE, ApiClient, OFFLINE_SITES, TRAINING_SITE, type SiteAsset } from './apiClient';
 import { PlannerApi, type Mission } from './plannerApi';
 import { PlannerMissions } from './ui/PlannerMissions';
+import type { MissionRouteSite } from './ui/MissionRoute';
 import { ExplorerStoryMode } from './ui/ExplorerStoryMode';
 import { SiteComparator } from './ui/SiteComparator';
 import { angleChart, downloadAnalysis } from './ui/MissionAnalysis';
@@ -85,7 +86,7 @@ let landing: LandingPoint | undefined;
 let mode: 'explorer' | 'planner' | undefined;
 let relocating = false;
 let activeMission: Mission | undefined;
-let plannerSiteOptions: { id: string; label: string }[] = [];
+let plannerSiteOptions: MissionRouteSite[] = [];
 let catalogOffline = false;
 let campaignRun = 0;
 let catalogRequest: AbortController | undefined;
@@ -998,7 +999,7 @@ async function loadSelected(coordinates?: NewSite, selectedId = siteSelect.value
       selected = registered.site_id;
       const exists = Array.from(siteSelect.select.options).some(option => option.value === selected);
       if (!exists) siteSelect.select.add(new Option(registered.name ?? selected, selected));
-      if (!plannerSiteOptions.some(site => site.id === selected)) plannerSiteOptions.push({ id: selected, label: registered.name ?? selected });
+      if (!plannerSiteOptions.some(site => site.id === selected)) plannerSiteOptions.push({ id: selected, label: registered.name ?? selected, coordinates: registered.coordinates });
       siteSelect.setValue(selected);
       customRanges.set(selected, customDateRange(liveClock.followNow ? Date.now() : currentTime));
     }
@@ -1103,12 +1104,14 @@ async function fetchCatalog(): Promise<void> {
     const options = [...sites, ...saved.filter(item => !sites.some(site => site.site_id === item.site_id))].map(item => {
       const label = item.name ?? item.site_id;
       const pending = item.status === 'pending_data';
-      return { value: item.site_id, label: pending ? `${label} (awaiting data)` : label, disabled: pending };
+      return { value: item.site_id, label: pending ? `${label} (awaiting data)` : label, disabled: pending, coordinates: item.coordinates };
     });
     for (const option of Array.from(siteSelect.select.options)) if (mode === 'planner' && accounts.token && customRanges.has(option.value) && !options.some(r => r.value === option.value)) {
-      options.push({ value: option.value, label: option.textContent ?? option.value, disabled: option.disabled });
+      options.push({ value: option.value, label: option.textContent ?? option.value, disabled: option.disabled,
+        coordinates: plannerSiteOptions.find(site => site.id === option.value)?.coordinates });
     }
-    if (mode === 'planner') plannerSiteOptions = options.filter(option => !option.disabled).map(option => ({ id: option.value, label: option.label }));
+    if (mode === 'planner') plannerSiteOptions = options.filter(option => !option.disabled)
+      .map(option => ({ id: option.value, label: option.label, coordinates: option.coordinates }));
     siteSelect.setOptions([...options, bundledOptions.at(-1)!], previous);
   } catch {
     if (!active.signal.aborted) catalogOffline = true;
@@ -1142,7 +1145,7 @@ async function activateMission(mission: Mission) {
     followNow: liveClock.followNow,
   };
   setActiveMission(mission);
-  siteSelect.setOptions(mission.site_ids.map(id => ({ value: id, label: mission.sites.find(site => site.site_id === id)?.name ?? id })), mission.site_ids[0]);
+  siteSelect.setOptions(mission.site_ids.map(id => ({ value: id, label: mission.sites?.find(site => site.site_id === id)?.name ?? id })), mission.site_ids[0]);
   heightSelect.setValue(String(mission.observer_height_m ?? 2));
   liveClock.followNow = false;
   currentTime = Date.parse(mission.start_utc);

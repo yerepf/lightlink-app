@@ -42,7 +42,8 @@ export function adaptBackendSite(input: unknown, apiBase = '/api'): SiteData {
   });
 }
 
-export interface BackendSiteSummary { site_id: string; name?: string; status?: string; observer_heights_m?: number[] }
+export interface SiteCoordinates { latitude: number; longitude: number }
+export interface BackendSiteSummary { site_id: string; name?: string; status?: string; observer_heights_m?: number[]; coordinates?: SiteCoordinates }
 export interface NewSite { name: string; latitude: number; longitude: number }
 export function validateCoordinates(input: NewSite): NewSite {
   const name = input.name.trim();
@@ -92,7 +93,8 @@ export class BackendClient {
     const value = validateCoordinates(input);
     const result = record(await this.get('/sites', signal, { name: value.name, coordinates: { latitude: value.latitude, longitude: value.longitude } }), 'registered site');
     if (typeof result.site_id !== 'string' || !/^[A-Za-z0-9_-]+$/.test(result.site_id)) throw new Error('API: invalid site ID');
-    return { site_id: result.site_id, name: value.name, status: typeof result.status === 'string' ? result.status : undefined };
+    return { site_id: result.site_id, name: value.name, coordinates: { latitude: value.latitude, longitude: value.longitude },
+      status: typeof result.status === 'string' ? result.status : undefined };
   }
   async loadSite(id: string, height: 2 | 5 = 2, signal?: AbortSignal, range?: SiteRange): Promise<SiteData> {
     const query = new URLSearchParams({ observer_height_m: String(height) });

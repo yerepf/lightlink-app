@@ -1,4 +1,4 @@
-import { BackendError } from '../src/backend';
+import { BackendError, type SiteCoordinates } from '../src/backend';
 
 export type PlannerUser = { id: string; name: string; email: string };
 export type MissionInput = {
@@ -10,7 +10,7 @@ export type MissionInput = {
   step_hours?: number;
   observer_height_m?: number;
 };
-export type Mission = MissionInput & { id: string; owner_id: string; sites: { site_id: string; name: string }[] };
+export type Mission = MissionInput & { id: string; owner_id: string; sites?: { site_id: string; name: string; coordinates?: SiteCoordinates }[] };
 export type Invitation = { id: string; mission_name: string; invited_by_name: string; email: string; expires_at_utc: string };
 type Session = { token: string; expires: number };
 const sessionKey = 'lightlink.planner.session';
