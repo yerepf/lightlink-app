@@ -51,10 +51,34 @@
 }
 
 .start-menu__brand {
+  --brand-gap: clamp(16px, 4svh, 36px);
+  position: relative;
   display: grid;
   align-self: end;
   justify-items: center;
 }
+
+.start-menu__lockup {
+  display: grid;
+  justify-items: center;
+}
+
+.start-menu__logo-still,
+.start-menu__logo-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: calc(100% - var(--brand-gap));
+  object-fit: contain;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+
+.start-menu[data-logo-ready] .start-menu__logo-still { opacity: 1; }
+.start-menu:is([data-logo-ready], [data-logo-playing]) .start-menu__lockup { opacity: 0; }
+.start-menu[data-logo-playing] .start-menu__logo-still { opacity: 0; }
+.start-menu[data-logo-playing] .start-menu__logo-video { opacity: 1; }
 
 .start-menu__mark {
   width: clamp(108px, 23svh, 196px);
@@ -62,7 +86,7 @@
 }
 
 .start-menu h1 {
-  margin: 0 0 clamp(16px, 4svh, 36px);
+  margin: 0 0 var(--brand-gap);
   font: italic 700 clamp(38px, 5.6vw, 78px)/1.12 'Libre Baskerville', Georgia, serif;
   white-space: nowrap;
   letter-spacing: -0.04em;

@@ -1,5 +1,7 @@
 The start screen backdrop and the astronaut were made with built-in ImageGen. The WebP astronaut preserves alpha. The user's attached Light&Link reference informed the first illustration, from which both shipped assets were derived.
 
+`start-logo.mp4` comes from the user-supplied `Light & link animacion logo.mp4`. The app version crops the surrounding black space and trims the initial black frames for inline playback on the start screen. `start-logo-still.webp` is the final frame of that same clip and holds the logo in place after playback.
+
 ## Prompts
 
 Use the latest attached Light&Link menu screenshot only as visual reference. Create a full-bleed widescreen 16:9 background illustration for an interactive lunar exploration start screen, without any typography, logos, frames, lettering, or UI. Authentic vintage astronomical copperplate engraving printed in muted cream-gold and dusty olive inks on a nearly black forest-green paper star field. Large etched folkloric Sun cropped at left edge, the Earth partially cropped at upper right, a single detailed astronaut drifting diagonally on right in front of Earth, and the cratered Moon centered low, its top around 62% of the frame and its bottom near the bottom edge. Keep the central 40% of the frame very dark and visually quiet from 16% to 62% height; this negative space is reserved for a live HTML logo, title and button. Fine cross-hatching and subtle paper texture, restrained sparse small stars, high print craft. No other objects. No words, no buttons, no decorative boundary. Edge to edge.
